@@ -1,0 +1,6 @@
+"X72.h.Model"      "X72.h.Df"      "X72.h.Deviance"      "X72.h.Resid..Df"      "X72.h.Resid..Dev"      "X72.h.Pr..Chi."      "X72.h.AIC"
+"1"      "NULL"      NA      " NA"      5      "31.22"      "   NA"      "57.3"
+"2"      "Sample"      2      "25.56"      3      "5.67"      "0.0000"      "35.7"
+"3"      "Phylum"      1      "0.03"      4      "31.20"      "0.8673"      "59.2"
+"4"      "Sample+Phylum"      2      "28.26"      2      "2.93"      "0.0000"      "35.0"
+"5"      "Sample+Phylum+Phylum|Sample"      2      "2.93"      0      "-0.00"      "0.2306"      "36.0"

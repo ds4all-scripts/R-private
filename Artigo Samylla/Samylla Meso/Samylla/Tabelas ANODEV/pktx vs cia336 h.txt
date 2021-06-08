@@ -1,0 +1,6 @@
+"X336.h.Model"      "X336.h.Df"      "X336.h.Deviance"      "X336.h.Resid..Df"      "X336.h.Resid..Dev"      "X336.h.Pr..Chi."      "X336.h.AIC"
+"1"      "NULL"      NA      " NA"      5      "34.77"      "   NA"      "59.8"
+"2"      "Sample"      2      "32.43"      3      "2.34"      "0.0000"      "31.4"
+"3"      "Phylum"      1      "1.81"      4      "32.96"      "0.1783"      "60.0"
+"4"      "Sample+Phylum"      2      "32.31"      2      "0.64"      "0.0000"      "31.7"
+"5"      "Sample+Phylum+Phylum|Sample"      2      "0.64"      0      "0.00"      "0.7254"      "35.0"

@@ -1,0 +1,19 @@
+"Dim.1";"Dim.2"
+"Time";16.07;3.93
+"Percentual";2.47;10.34
+"Transparency (cm)";6.05;16.41
+"Turbidity (uT)";8.37;15.38
+"True color (uH)";0.03;2.31
+"Temperature (°C)";0.01;6.52
+"pH";0.65;1.79
+"Conductivity (µS/cm)";7.79;3.21
+"Dissolved oxygen  (mg/L)";0.01;19.68
+"Organic matter (254 Abs)";3.33;1.19
+"Nitrite (mg/L)";3.54;0.35
+"Nitrate (mg/L)";6.59;2.45
+"Orthophosphate (mg/L)";8.88;0.17
+"Sulfate (mg/L)";2.44;0.2
+"Fluoride (mg/L)";2.51;9.06
+"Chloride (mg/L)";8.75;0.5
+"Total Organic Carbon (mg/L)";9.83;5.17
+"Dissolved Organic Carbon (mg/L)";12.66;1.36
