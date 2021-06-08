@@ -1,5 +1,6 @@
 ### Base de dados ###
-local = "C:\\Users\\User\\Documents\\Artigo Samylla\\Samylla Meso\\PCA"
+getwd()
+local = "C:/Users/User/Documents/Projects/R-private/Artigo Samylla/Samylla Meso/PCA"
 setwd(local)
 library(readxl)
 BasePCA <- read_excel("BaseFinalPca.xlsx", sheet = "PCA")
