@@ -436,28 +436,38 @@ d1$Time = factor(d1$Time, levels = c("Day 0",
                                      "Day 7",
                                      "Day 14")
                  )
-#Scaling and Centering of data
+#transform data: MaxMin
 
 d1.t = apply(d1[,-c(1,2)],
              2,
              function (x) {(max(x)-x)/(max(x)-min(x))} )
 d1.t = cbind(d1[,c(1,2)],d1.t)
 
+#scale data
+
+d2.t = apply(d1[,-c(1,2)],
+             2,
+             scale)
+d2.t = cbind(d1[,c(1,2)],d2.t)
+d = d1.t
+d = d2.t
 mean = a = sd = c = data.frame()
 for (j in 3:19) {
   for (i in levels(d1.t[, 1])) {
-    a = data.frame(i=tapply(d1.t[d1$Time == i, j],
-                          d2$Sample[d1.t$Time == i],
+    a = data.frame(i=tapply(d[d$Time == i, j],
+                            d$Sample[d$Time == i],
                           mean))
-    c = data.frame(i=tapply(d1.t[d1.t$Time == i, j],
-                          d1.t$Sample[d1.t$Time == i],
-                          sd))
+    c = data.frame(i=tapply(d[d$Time == i, j],
+                            d$Sample[d$Time == i],
+                            sd))
 
     mean = rbind(mean, t(a))
     sd = rbind(sd, t(c))
 
   }
 }
+
+
 mean$Time = rep(levels(d1.t$Time),17)
 mean$Sample = rep(levels(d1.t$Time),17)
 mean$Parameter = rep(colnames(d1.t)[3:19],
@@ -466,6 +476,7 @@ mean.melt = melt(mean,id.vars = c("Time",
                                   "Sample",
                                   "Parameter"))
 
+# to allow comparison
 sd$Time = rep(levels(d1.t$Time),17)
 sd$Sample = rep(levels(d1.t$Time),17)
 sd$Parameter = rep(colnames(d1.t)[3:19],
@@ -479,21 +490,26 @@ sd.melt = melt(sd,id.vars = c("Time",
 mean.melt$sd = sd.melt$value
 mean.melt$Time = factor(as.factor(mean.melt$Time),
                         levels =  c("Day 0",  "Day 7",  "Day 14"))
+
+
+
+# Bargraph for d1.t -------------------------------------------------------
+unique(mean.melt$Parameter)
 g = mean.melt[mean.melt$Parameter=="Transparency" |
               mean.melt$Parameter=="Turbidity" |
               mean.melt$Parameter=="Tcolor" |
               mean.melt$Parameter=="Temperature" |
               mean.melt$Parameter=="pH"|
               mean.melt$Parameter=="Conductivity",]
-
-a = ggplot(g, aes(x = Time,
+a = ggplot(g, aes(x = as.numeric(Time),
                   y = value,
-                  fill = variable))+
+                  fill = variable,
+                  group = variable))+
   geom_bar(stat = "identity",
            position=position_dodge())+
   scale_fill_grey(start = 0.2, end = .8)+
-  geom_errorbar(aes(ymin=value,
-                    ymax=value+sd),
+  geom_errorbar(aes(ymin=value-sd*.5,
+                    ymax=value+sd*.5),
                 width=.2,
                 position=position_dodge(.9))+
   ylab("")+
@@ -509,7 +525,6 @@ a = ggplot(g, aes(x = Time,
                                         linetype = 1),
         legend.position = "n");a
 
-unique(mean.melt$Parameter)
 g = mean.melt[mean.melt$Parameter=="DO" |
                 mean.melt$Parameter=="254um" |
                 mean.melt$Parameter=="Nitrite" |
@@ -540,7 +555,6 @@ b = ggplot(g, aes(x = Time,
                                         linetype = 1),
         legend.position = "n");b
 
-unique(mean.melt$Parameter)
 g = mean.melt[mean.melt$Parameter=="Fluoride" |
                 mean.melt$Parameter=="Chloride" |
                 mean.melt$Parameter=="TOC" |
@@ -564,6 +578,92 @@ c = ggplot(g, aes(x = Time,
                              label.position = "top",
                              title.position = "left"))+
   theme(legend.text = element_text(face = "italic"),
+        panel.background = element_rect(fill = "white",
+                                        colour = "black",
+                                        size = .5,
+                                        linetype = 1),
+        legend.position = "right");c
+
+d=plot_grid(a,b,c, ncol = 1)
+
+ggsave(filename = "graphics/overview.png",
+       plot = d,
+       device = "png",
+       height = 9,
+       width = 13,
+       units = "in",
+       dpi = "retina" )
+
+# Line graph for d2.t ------------------------------------------------------
+
+g = mean.melt[mean.melt$Parameter=="Transparency" |
+                mean.melt$Parameter=="Turbidity" |
+                mean.melt$Parameter=="Tcolor" |
+                mean.melt$Parameter=="Temperature" |
+                mean.melt$Parameter=="pH"|
+                mean.melt$Parameter=="Conductivity",]
+
+a = ggplot(g, aes(x = (Time),
+                  y = value,
+                  fill = variable,
+                  group = variable))+
+  geom_line(aes(linetype=variable))+geom_point()+
+  scale_fill_grey(start = 0.2, end = .8)+
+  ylab("")+
+  xlab("")+
+  facet_grid(~Parameter,scales = "free")+
+  guides(fill = guide_legend(title = "",
+                             label.position = "top",
+                             title.position = "left"))+
+  theme(legend.text = element_text(face = "italic"),
+        panel.background = element_rect(fill = "white",
+                                        colour = "black",
+                                        size = .5,
+                                        linetype = 1),
+        legend.position = "n");a
+
+g = mean.melt[mean.melt$Parameter=="DO" |
+                mean.melt$Parameter=="254um" |
+                mean.melt$Parameter=="Nitrite" |
+                mean.melt$Parameter=="Nitrate" |
+                mean.melt$Parameter=="Orthophosphate"|
+                mean.melt$Parameter=="Sulfate",]
+
+b = ggplot(g, aes(x = (Time),
+                  y = value,
+                  group = variable))+
+  geom_line(aes(linetype=variable))+geom_point()+
+  scale_fill_grey(start = 0.2, end = .8)+
+  ylab("")+
+  xlab("")+
+  facet_grid(~Parameter,scales = "free")+
+  guides(fill = guide_legend(title = "",
+                             label.position = "top",
+                             title.position = "left"))+
+  theme(legend.text = element_text(face = "italic"),
+        panel.background = element_rect(fill = "white",
+                                        colour = "black",
+                                        size = .5,
+                                        linetype = 1),
+        legend.position = "n");b
+
+g = mean.melt[mean.melt$Parameter=="Fluoride" |
+                mean.melt$Parameter=="Chloride" |
+                mean.melt$Parameter=="TOC" |
+                mean.melt$Parameter=="DOC" |
+                mean.melt$Parameter=="DTC",]
+
+c = ggplot(g, aes(x = (Time),
+                  y = value,
+                  group = variable))+
+  geom_line(aes(linetype=variable))+geom_point()+
+  scale_fill_grey(start = 0.2, end = .8)+
+  ylab("")+
+  xlab("")+
+  facet_grid(~Parameter,scales = "free")+
+  guides(type = guide_legend(title="my awesome title"))+
+  theme(legend.text = element_text(face = "italic"),
+        legend.title = element_text(face = "bold"),
         panel.background = element_rect(fill = "white",
                                         colour = "black",
                                         size = .5,
