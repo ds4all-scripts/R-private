@@ -295,6 +295,55 @@ graph2 = function(g,
 }
 
 
+ds_for_graph = function(d,
+                        col.agg = 2,
+                        n.fac = 1) {
+  a = as.data.frame(lapply(d, is.numeric))
+  A = d             # All variables
+  N = d[, t(a)]     # Numeric variable  only
+  C = d[,!t(a)]     # Factor variable only
+  begin = 1 + ncol(C)
+  mean = a = sd = c = data.frame()
+  for (j in begin:NCOL(d)) {
+    print(j)
+    for (i in levels(d[, n.fac])) {
+      print(i)
+      a = data.frame("i" = tapply(d[d[,n.fac] == i, colnames(d)[j]],
+                                  d[,col.agg][d[,n.fac] == i],
+                                  mean))
+      c = data.frame("i" = tapply(d[d[,n.fac] == i, colnames(d)[j]],
+                                  d[,col.agg][d[,n.fac] == i],
+                                 sd))
+      mean = rbind(mean, t(a))
+      sd = rbind(sd, t(c))
+    }
+  }
+mean$Time = rep(levels(as.factor(d[,n.fac])),
+                ncol(N))
+mean$Parameter = rep(colnames(N),
+                     each = length(levels(as.factor(d[,n.fac]))))
+
+# to allow comparison
+sd$Time = mean$Time
+sd$Parameter = mean$Parameter
+
+return(list("mean" = mean,
+              "sd" = sd,
+            "mean.melt" = melt(mean,id.vars = c("Time",
+                                                "Parameter")),
+            "sd.melt" = melt(sd,id.vars = c("Time",
+                                           "Parameter"))
+            )
+       )
+
+
+}
+
+ds_for_graph(d1)
+
+
+
+
 
 # ETL ---------------------------------------------------------------------
 # A typical ETL process collects and refines
@@ -441,7 +490,11 @@ d1$Time = factor(d1$Time, levels = c("Day 0",
 d1.t = apply(d1[,-c(1,2)],
              2,
              function (x) {(max(x)-x)/(max(x)-min(x))} )
+
 d1.t = cbind(d1[,c(1,2)],d1.t)
+ds_for_graph(d = d1.t,
+             col.agg = 1,
+             n.fac = 2)
 
 #scale data
 
@@ -451,39 +504,7 @@ d2.t = apply(d1[,-c(1,2)],
 d2.t = cbind(d1[,c(1,2)],d2.t)
 d = d1.t
 d = d2.t
-mean = a = sd = c = data.frame()
-for (j in 3:19) {
-  for (i in levels(d1.t[, 1])) {
-    a = data.frame(i=tapply(d[d$Time == i, j],
-                            d$Sample[d$Time == i],
-                          mean))
-    c = data.frame(i=tapply(d[d$Time == i, j],
-                            d$Sample[d$Time == i],
-                            sd))
 
-    mean = rbind(mean, t(a))
-    sd = rbind(sd, t(c))
-
-  }
-}
-
-
-mean$Time = rep(levels(d1.t$Time),17)
-mean$Sample = rep(levels(d1.t$Time),17)
-mean$Parameter = rep(colnames(d1.t)[3:19],
-                    each = 3)
-mean.melt = melt(mean,id.vars = c("Time",
-                                  "Sample",
-                                  "Parameter"))
-
-# to allow comparison
-sd$Time = rep(levels(d1.t$Time),17)
-sd$Sample = rep(levels(d1.t$Time),17)
-sd$Parameter = rep(colnames(d1.t)[3:19],
-                     each = 3)
-sd.melt = melt(sd,id.vars = c("Time",
-                              "Sample",
-                              "Parameter"))
 
 
 #Sdt desv. bar
