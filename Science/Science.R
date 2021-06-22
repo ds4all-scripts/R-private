@@ -1,4 +1,4 @@
-# Dir and librarys  -----------------------------------------------
+# 1 - Dir and librarys  -----------------------------------------------
 rm(list = ls())
 #Dir
 local = "C:\\Users\\User\\Documents\\Projects\\R-private\\Science"
@@ -18,7 +18,7 @@ library(tidyr)
 library(rela)
 library(psych)
 
-# #Functions --------------------------------------------------------------
+# 2 - Functions --------------------------------------------------------------
 
 #Percentage NA Function
 Perc_NA =  function(data,
@@ -305,9 +305,7 @@ ds_for_graph = function(d,
   begin = 1 + ncol(C)
   mean = a = sd = c = data.frame()
   for (j in begin:NCOL(d)) {
-    print(j)
     for (i in levels(d[, n.fac])) {
-      print(i)
       a = data.frame("i" = tapply(d[d[,n.fac] == i, colnames(d)[j]],
                                   d[,col.agg][d[,n.fac] == i],
                                   mean))
@@ -326,26 +324,83 @@ mean$Parameter = rep(colnames(N),
 # to allow comparison
 sd$Time = mean$Time
 sd$Parameter = mean$Parameter
-
+mean.melt = reshape2::melt(mean,id.vars = c("Time",
+                                              "Parameter"))
+sd.melt = reshape2::melt(sd,id.vars = c("Time",
+                                          "Parameter"))
+grap.melt = cbind(mean.melt,sd.melt[,"value"])
+colnames(grap.melt)[NCOL(grap.melt)]="sd"
 return(list("mean" = mean,
               "sd" = sd,
-            "mean.melt" = melt(mean,id.vars = c("Time",
-                                                "Parameter")),
-            "sd.melt" = melt(sd,id.vars = c("Time",
-                                           "Parameter"))
+            "mean.melt" = mean.melt,
+            "sd.melt" = sd.melt,
+            "grap.melt" = grap.melt
             )
        )
 
 
 }
 
-ds_for_graph(d1)
+# bargraph
+graph_bar = function(g, leg = "n") {
+  library(ggplot2)
+  library(cowplot)
+  ggplot(g,
+         aes(
+           x = (Time),
+           y = value,
+           fill = variable,
+           group = variable
+         )) +
+    geom_bar(stat = "identity",
+             position = position_dodge()) +
+    scale_fill_grey(start = 0.2, end = .8) +
+    geom_errorbar(
+      aes(ymin = value,
+          ymax = value + sd),
+      width = .2,
+      position = position_dodge(.9)
+    ) +
+    ylab("") +
+    xlab("") +
+    facet_grid( ~ Parameter, scales = "free") +
+    guides(fill = guide_legend(
+      title = "",
+      label.position = "top",
+      title.position = "left"
+    )) +
+    theme(
+      legend.text = element_text(face = "italic"),
+      panel.background = element_rect(
+        fill = "white",
+        colour = "black",
+        size = .5,
+        linetype = 1
+      ),
+      legend.position = leg
+    )
+}
 
 
+# line graph
+graph_line = function(g, leg = "n"){
+
+ggplot(g, aes(x = (Time),
+              y = value,
+              group = variable))+
+  geom_line(aes(linetype=variable))+geom_point()+
+  scale_fill_grey(start = 0.2, end = .8)+
+  ylab("")+
+  xlab("")+
+  facet_grid(~Parameter,scales = "free")+
+  theme_bw()+
+  theme(legend.text = element_text(face = "italic"),
+        legend.title=element_blank(),
+        legend.position = leg)
+}
 
 
-
-# ETL ---------------------------------------------------------------------
+# 3 - ETL ---------------------------------------------------------------------
 # A typical ETL process collects and refines
 # different types of data, then delivers the
 # data to a destiny.Three steps make up the
@@ -355,16 +410,16 @@ ds_for_graph(d1)
 # loading.
 
 
-# 1 - Data extraction: ----------------------------------------------------
+# 3.1 - Data extraction: ----------------------------------------------------
 
 FQ <- read_excel("Datasets/FQ.xlsx")
 
-# 2 - Data transformation: ------------------------------------------------
+# 3.2 - Data transformation: ------------------------------------------------
 
-# 2.1 - Define object class and backup
+# 3.2.1 - Define object class and backup
 data = as.data.frame(FQ)
 
-# 2.2 - Cleansing (inconsistencies or missing values)
+# 3.2.2 - Cleansing (inconsistencies or missing values)
 
 # Variable names
 colnames(data) #ok!
@@ -411,10 +466,9 @@ df.imputed = randomForest::rfImpute(as.factor(df.na$Sample) ~ .,
                                     ntree=500)
 data =  cbind(data[,c(1,2)],df.imputed[,-c(1,2)] )
 
-# 2.3 - Standardization (ok!)
-# 2.4 - Deduplication (ok!)
-# 2.5 - Sorting: order dataset (Column and row)
-
+# .3.3 - Standardization (ok!)
+# .3.4 - Deduplication (ok!)
+# .3.5 - Sorting: order dataset (Column and row)
 #Checking factor levels
 levels(data$Time)
 data$Time = factor(data$Time, levels = c("0 h",
@@ -436,7 +490,7 @@ data$Sample = factor(data$Sample, levels = c("Raw water",
                                              "Control",
                                              "Treatment"))
 
-# 2.6 - Verification:solve problems with compromised data
+# 3.6 - Verification:solve problems with compromised data
 #       and spurious or irrelevant observations
 
 # Raw water data is not relevant to this analysis
@@ -450,11 +504,11 @@ d1 = d1[d1$Time == "Day 0" |
             d1$Time == "Day 14",]
 
 
-# 2. 7 - Other tasks: any additional/optional rules can
+# 3. 7 - Other tasks: any additional/optional rules can
 #        be applied to improve data quality.
 
 
-# 3 - Data Loading:
+# 4 - Data Loading:
 
 # In this phase, extracted and transformed
 # data is loaded into the end target source
@@ -462,29 +516,21 @@ d1 = d1[d1$Time == "Day 0" |
 # or a Data Warehouse depending on the
 # requirement of the organization.
 
-# 4 - Exploratory analysis
+# 5 - Exploratory analysis
 # Separate numeric variable
 
 a = as.data.frame(lapply(d1, is.numeric))
 
 #dataset used
 
-# Variable "Jar" is not relevant
 A = d1                # All variables
 N = d1[, t(a)]        # Numeric variable  only
 C = d1[, !t(a)]       # Factor variable only
 
-# Data visualisation
+# 6 - Data visualisation
 
-# 3.1 Barplot: ---------------------------------------------------------
+# 6.1 - Barplot MaxMin ---------------------------------------------------------
 
-#Remove inexistent levels
-d1$Sample = as.factor(as.character(d1$Sample))
-d1$Time = as.factor(as.character(d1$Time))
-d1$Time = factor(d1$Time, levels = c("Day 0",
-                                     "Day 7",
-                                     "Day 14")
-                 )
 #transform data: MaxMin
 
 d1.t = apply(d1[,-c(1,2)],
@@ -492,122 +538,90 @@ d1.t = apply(d1[,-c(1,2)],
              function (x) {(max(x)-x)/(max(x)-min(x))} )
 
 d1.t = cbind(d1[,c(1,2)],d1.t)
-ds_for_graph(d = d1.t,
-             col.agg = 1,
-             n.fac = 2)
 
-#scale data
+g = ds_for_graph(d = d1.t,
+                 col.agg = 2,
+                 n.fac = 1)[[5]];g
+
+unique(g$Parameter)
+
+i = g[g$Parameter=="Transparency" |
+      g$Parameter=="Turbidity" |
+      g$Parameter=="Tcolor" |
+      g$Parameter=="Temperature" |
+      g$Parameter=="pH"|
+      g$Parameter=="Conductivity",];g
+
+a = graph_bar(i);a
+
+i = g[g$Parameter=="DO" |
+      g$Parameter=="254um" |
+      g$Parameter=="Nitrite" |
+      g$Parameter=="Nitrate" |
+      g$Parameter=="Orthophosphate"|
+      g$Parameter=="Sulfate",];g
+
+b = graph_bar(i);b
+
+i = g[g$Parameter=="Fluoride" |
+      g$Parameter=="Chloride" |
+      g$Parameter=="TOC" |
+      g$Parameter=="DOC" |
+      g$Parameter=="DTC",];i
+
+c = graph_bar(i,"right");c
+
+e=plot_grid(a,b,c, ncol = 1);e
+
+ggsave(filename = "graphics/overview_bargraph.png",
+       plot = e,
+       device = "png",
+       height = 9,
+       width = 13,
+       units = "in",
+       dpi = "retina" )
+
+# 6.2 - Line graph for d2.t ------------------------------------------------------
 
 d2.t = apply(d1[,-c(1,2)],
              2,
-             scale)
+              scale)
+
 d2.t = cbind(d1[,c(1,2)],d2.t)
-d = d1.t
-d = d2.t
 
+g = ds_for_graph(d = d2.t,
+                 col.agg = 2,
+                 n.fac = 1)[[5]];g
 
+unique(g$Parameter)
+h = g[g$Parameter=="Transparency" |
+      g$Parameter=="Turbidity" |
+      g$Parameter=="Tcolor" |
+      g$Parameter=="Temperature" |
+      g$Parameter=="pH"|
+      g$Parameter=="Conductivity",]
 
-#Sdt desv. bar
-mean.melt$sd = sd.melt$value
-mean.melt$Time = factor(as.factor(mean.melt$Time),
-                        levels =  c("Day 0",  "Day 7",  "Day 14"))
+a = graph_line(h);a
 
+h = g[g$Parameter=="DO" |
+      g$Parameter=="254um" |
+      g$Parameter=="Nitrite" |
+      g$Parameter=="Nitrate" |
+      g$Parameter=="Orthophosphate"|
+      g$Parameter=="Sulfate",]
 
+b = graph_line(h);b
 
-# Bargraph for d1.t -------------------------------------------------------
-unique(mean.melt$Parameter)
-g = mean.melt[mean.melt$Parameter=="Transparency" |
-              mean.melt$Parameter=="Turbidity" |
-              mean.melt$Parameter=="Tcolor" |
-              mean.melt$Parameter=="Temperature" |
-              mean.melt$Parameter=="pH"|
-              mean.melt$Parameter=="Conductivity",]
-a = ggplot(g, aes(x = as.numeric(Time),
-                  y = value,
-                  fill = variable,
-                  group = variable))+
-  geom_bar(stat = "identity",
-           position=position_dodge())+
-  scale_fill_grey(start = 0.2, end = .8)+
-  geom_errorbar(aes(ymin=value-sd*.5,
-                    ymax=value+sd*.5),
-                width=.2,
-                position=position_dodge(.9))+
-  ylab("")+
-  xlab("")+
-  facet_grid(~Parameter,scales = "free")+
-  guides(fill = guide_legend(title = "",
-                             label.position = "top",
-                             title.position = "left"))+
-  theme(legend.text = element_text(face = "italic"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "black",
-                                        size = .5,
-                                        linetype = 1),
-        legend.position = "n");a
+h = g[g$Parameter=="Fluoride" |
+      g$Parameter=="Chloride" |
+      g$Parameter=="TOC" |
+      g$Parameter=="DOC" |
+      g$Parameter=="DTC",]
+c = graph_line(h,leg = "right");c
 
-g = mean.melt[mean.melt$Parameter=="DO" |
-                mean.melt$Parameter=="254um" |
-                mean.melt$Parameter=="Nitrite" |
-                mean.melt$Parameter=="Nitrate" |
-                mean.melt$Parameter=="Orthophosphate"|
-                mean.melt$Parameter=="Sulfate",]
+d=plot_grid(a,b,c, ncol = 1);d
 
-b = ggplot(g, aes(x = Time,
-                  y = value,
-                  fill = variable))+
-  geom_bar(stat = "identity",
-           position=position_dodge())+
-  scale_fill_grey(start = 0.2, end = .8)+
-  geom_errorbar(aes(ymin=value,
-                    ymax=value+sd),
-                width=.2,
-                position=position_dodge(.9))+
-  ylab("")+
-  xlab("")+
-  facet_grid(~Parameter,scales = "free")+
-  guides(fill = guide_legend(title = "",
-                             label.position = "top",
-                             title.position = "left"))+
-  theme(legend.text = element_text(face = "italic"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "black",
-                                        size = .5,
-                                        linetype = 1),
-        legend.position = "n");b
-
-g = mean.melt[mean.melt$Parameter=="Fluoride" |
-                mean.melt$Parameter=="Chloride" |
-                mean.melt$Parameter=="TOC" |
-                mean.melt$Parameter=="DOC" |
-                mean.melt$Parameter=="DTC",]
-
-c = ggplot(g, aes(x = Time,
-                  y = value,
-                  fill = variable))+
-  geom_bar(stat = "identity",
-           position=position_dodge())+
-  scale_fill_grey(start = 0.2, end = .8)+
-  geom_errorbar(aes(ymin=value,
-                    ymax=value+sd),
-                width=.2,
-                position=position_dodge(.9))+
-  ylab("")+
-  xlab("")+
-  facet_grid(~Parameter,scales = "free")+
-  guides(fill = guide_legend(title = "",
-                             label.position = "top",
-                             title.position = "left"))+
-  theme(legend.text = element_text(face = "italic"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "black",
-                                        size = .5,
-                                        linetype = 1),
-        legend.position = "right");c
-
-d=plot_grid(a,b,c, ncol = 1)
-
-ggsave(filename = "graphics/overview.png",
+ggsave(filename = "graphics/overview_linegraph.png",
        plot = d,
        device = "png",
        height = 9,
@@ -615,92 +629,60 @@ ggsave(filename = "graphics/overview.png",
        units = "in",
        dpi = "retina" )
 
-# Line graph for d2.t ------------------------------------------------------
+# 7 - Factor Analysis ---------------------------------------------------------
 
-g = mean.melt[mean.melt$Parameter=="Transparency" |
-                mean.melt$Parameter=="Turbidity" |
-                mean.melt$Parameter=="Tcolor" |
-                mean.melt$Parameter=="Temperature" |
-                mean.melt$Parameter=="pH"|
-                mean.melt$Parameter=="Conductivity",]
+# 7.1 - Summary of descriptive statistics -----------------------------------
 
-a = ggplot(g, aes(x = (Time),
-                  y = value,
-                  fill = variable,
-                  group = variable))+
-  geom_line(aes(linetype=variable))+geom_point()+
-  scale_fill_grey(start = 0.2, end = .8)+
-  ylab("")+
-  xlab("")+
-  facet_grid(~Parameter,scales = "free")+
-  guides(fill = guide_legend(title = "",
-                             label.position = "top",
-                             title.position = "left"))+
-  theme(legend.text = element_text(face = "italic"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "black",
-                                        size = .5,
-                                        linetype = 1),
-        legend.position = "n");a
+A$Time = factor(as.factor(as.character(A$Time)),
+                levels = c("Day 0", "Day 7", "Day 14"))
+A$Sample = as.factor(as.character(A$Sample))
 
-g = mean.melt[mean.melt$Parameter=="DO" |
-                mean.melt$Parameter=="254um" |
-                mean.melt$Parameter=="Nitrite" |
-                mean.melt$Parameter=="Nitrate" |
-                mean.melt$Parameter=="Orthophosphate"|
-                mean.melt$Parameter=="Sulfate",]
+for (i in 3:dim(A)[2]) {
+  for (j in 1:3) {
+    cat("\n Variable",
+        colnames(A)[i],
+        "... Samples:",
+        levels(A$Date)[j], "\n")
+    print(tapply(A[A$Time == levels(A$Time)[j], i],
+                 A[A$Time == levels(A$Time)[j], 2],
+                 summary))
+    cat(" Std Dev...\n")
+    print(tapply(A[A$Time == levels(A$Time)[j], i],
+                 A[A$Time == levels(A$Time)[j], 2],
+                 sd))
+    cat("\n .....................................................\n")
+  }
+}
 
-b = ggplot(g, aes(x = (Time),
-                  y = value,
-                  group = variable))+
-  geom_line(aes(linetype=variable))+geom_point()+
-  scale_fill_grey(start = 0.2, end = .8)+
-  ylab("")+
-  xlab("")+
-  facet_grid(~Parameter,scales = "free")+
-  guides(fill = guide_legend(title = "",
-                             label.position = "top",
-                             title.position = "left"))+
-  theme(legend.text = element_text(face = "italic"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "black",
-                                        size = .5,
-                                        linetype = 1),
-        legend.position = "n");b
+# Corplot
+DS4All(N)
 
-g = mean.melt[mean.melt$Parameter=="Fluoride" |
-                mean.melt$Parameter=="Chloride" |
-                mean.melt$Parameter=="TOC" |
-                mean.melt$Parameter=="DOC" |
-                mean.melt$Parameter=="DTC",]
+# Some variables have very low correlations for EFA.
+# Therefore, these variables must be selected
 
-c = ggplot(g, aes(x = (Time),
-                  y = value,
-                  group = variable))+
-  geom_line(aes(linetype=variable))+geom_point()+
-  scale_fill_grey(start = 0.2, end = .8)+
-  ylab("")+
-  xlab("")+
-  facet_grid(~Parameter,scales = "free")+
-  guides(type = guide_legend(title="my awesome title"))+
-  theme(legend.text = element_text(face = "italic"),
-        legend.title = element_text(face = "bold"),
-        panel.background = element_rect(fill = "white",
-                                        colour = "black",
-                                        size = .5,
-                                        linetype = 1),
-        legend.position = "right");c
+# Adequacy of the dataset  ------------------------------------------------------
 
-d=plot_grid(a,b,c, ncol = 1)
+#Kmo
+KMO(cor(N))
+# For the sample to be considered satisfactory, KMO> .5
+# below 0.50 are 'unacceptable' (Hutcheson & Sofroniou 1999).
 
-ggsave(filename = "graphics/overview.png",
-       plot = d,
-       device = "png",
-       height = 9,
-       width = 13,
-       units = "in",
-       dpi = "retina" )
+#check the MSA of the original base
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) * 1.5)
+MSA(N)
 
-# Factor Analysis ---------------------------------------------------------
+#Conclusion: it is necessary to select variables
+#to adapt the dataset to FA
 
+# Verificando o melhor KMO
+# Procedure for selecting variables based on MSA
+png(
+  "Var_select.png",
+  width = 11,
+  height = 6.5,
+  res = 500,
+  units = "in"
+)
+kmo.max = opt.KMO(N)
+dev.off()
 
