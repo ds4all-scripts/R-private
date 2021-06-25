@@ -542,6 +542,10 @@ d1.t = cbind(d1[,c(1,2)],d1.t)
 g = ds_for_graph(d = d1.t,
                  col.agg = 2,
                  n.fac = 1)[[5]];g
+g$Time  = factor(as.factor(g$Time),
+                 levels = c("Day 0",
+                            "Day 7",
+                            "Day 14"))
 
 unique(g$Parameter)
 
@@ -550,7 +554,7 @@ i = g[g$Parameter=="Transparency" |
       g$Parameter=="Tcolor" |
       g$Parameter=="Temperature" |
       g$Parameter=="pH"|
-      g$Parameter=="Conductivity",];g
+      g$Parameter=="Conductivity",];i
 
 a = graph_bar(i);a
 
@@ -559,7 +563,7 @@ i = g[g$Parameter=="DO" |
       g$Parameter=="Nitrite" |
       g$Parameter=="Nitrate" |
       g$Parameter=="Orthophosphate"|
-      g$Parameter=="Sulfate",];g
+      g$Parameter=="Sulfate",];i
 
 b = graph_bar(i);b
 
@@ -592,7 +596,10 @@ d2.t = cbind(d1[,c(1,2)],d2.t)
 g = ds_for_graph(d = d2.t,
                  col.agg = 2,
                  n.fac = 1)[[5]];g
-
+g$Time  = factor(as.factor(g$Time),
+                 levels = c("Day 0",
+                            "Day 7",
+                            "Day 14"))
 unique(g$Parameter)
 h = g[g$Parameter=="Transparency" |
       g$Parameter=="Turbidity" |
@@ -683,6 +690,344 @@ png(
   res = 500,
   units = "in"
 )
-kmo.max = opt.KMO(N)
+
+# Barros et al.(2016)
+N = N[,c("Transparency","Turbidity", "Tcolor",
+         "Temperature","pH", "DO","254um",
+         "Nitrate", "Orthophosphate", "TOC","DOC")]
+
+kmo.max = opt.KMO(N[,-5])
 dev.off()
+colnames(N)
+
+N.3 = N[,-c(3,7,5,11)]
+N.4 = N[,-c(3,7,5,9,11)]
+
+# Based on previous results, one should remove
+# Variables: 3 (254 nm) and 7 (Sal)
+
+# New kMO
+max(kmo.max$KMO.value$KMO)
+
+#Bartlett test
+bartlett.test(N.3)
+bartlett.test(N.4)
+
+#det(cor(dataset))>O
+det(cor(N.3)) #OK, The dataset is ready to EFA
+det(cor(N.4)) #OK, The dataset is ready to EFA
+
+# 3.5 Selection of No. of Factors  --------------------------------------------------------
+
+# Parallel analyis is an alternative technique that compares the
+# scree of factors of the observed data with that of a random data
+# matrix of the same size as the originall in order to obtain the
+# number of factors that must be used in the EFA.
+
+A = N.3
+A= N.4
+parallel = fa.parallel(
+  cor(A),
+  n.obs = 18,
+  fa = "fa",
+  n.iter = 500,
+  fm = "ml",
+  main = "",
+  show.legend = F
+)
+
+
+#Create data frame from observed eigenvalue data
+obs = data.frame(parallel$fa.values)
+obs$type = c('Observed Data')
+obs$num = c(row.names(obs))
+obs$num = as.numeric(obs$num)
+colnames(obs) = c('eigenvalue', 'type', 'num')
+
+# simulated
+Simulated = apply(parallel$values, 2, function(x)
+  quantile(x, .95))
+
+#Create data frame  with simulated eigenvalue data
+sim = data.frame(Simulated[11:20])
+sim$type = c('Simulated Data')
+sim$num = c(row.names(sim))
+sim$num = 1:10
+colnames(sim) = c('eigenvalue', 'type', 'num')
+
+#Merge the two data frames (obs and sim)
+eigendat = rbind(obs, sim)
+
+#Graph Previous settings
+apatheme = theme_cowplot() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_blank(),
+    text = element_text(family = 'Arial'),
+    legend.title = element_blank(),
+    legend.position = c(.7, .8),
+    axis.line.x = element_line(color = 'black'),
+    axis.line.y = element_line(color = 'black')
+  )
+
+
+p = ggplot(eigendat,
+           aes(x = num,
+               y = eigenvalue,
+               shape = type)) +
+  geom_line() +
+  geom_point(size = 4) +
+  scale_y_continuous(name = 'Eigenvalue') +
+  scale_x_continuous(name = 'Factor Number',
+                     breaks = min(eigendat$num):max(eigendat$num)) +
+  scale_shape_manual(values = c(16, 1)) +
+  geom_vline(xintercept = parallel$nfact, linetype = 'dashed') +
+  apatheme;p
+
+ggsave(
+  filename = "graphics/parallel_A4.png",
+  device = "png",
+  plot = p,
+  width = 8,
+  height = 4,
+  units = "in",
+  scale = 1.25
+)
+
+# Loading factors, fit and others -----------------------------------------
+
+fm = c("ml",#) # This factoring method was the best
+"mle",
+"minres",
+"uls",
+"ols",
+"wls",
+"pa",
+"minrank",
+"old.min",
+"alfa")
+
+rt = c("promax",##) # This rotation was the best
+"quartimax",
+"bentlerT",
+"equamax",
+"varimin",
+"geominT" ,
+"bifactor")
+
+#nf: number of factors to be tested based
+#    on parallel analysis
+nf = c(3,4)#c(parallel$nfact-1,
+    #  parallel$nfact,
+    #  parallel$nfact+1)+1
+
+par(mfrow = c(1, 1))
+
+for (k in nf) {
+  for (i in fm) {
+    for (j in rt) {
+      cat(".....\n", "\n Rotation: ", j, "  fm = ", i, "\n......\n\n")
+      m.3 = fa(
+        N[,-c(3,4,7,11)],
+        nfactors = k,
+        rotate = j,
+        residuals = T,
+        fm = i,
+        max.iter = 5,
+        alpha = .05
+      )
+      if (m.3$RMSEA[[1]] < .10 &
+          m.3$TLI > .8) {
+        #Fit criteria in the model
+        cat("\n\nRMSEA = ",m.3$RMSEA[[1]],
+        "and TLI = ",m.3$TLI, "Ok....\n\n")
+        mens = paste("Factoring method:", i,
+                     " | Rotation:", j)
+        print(m.3$Vaccounted)
+        print(m.3$scores)
+
+        title = paste("Factoring method",
+                      i, "_", "Rotation", j, ".png")
+        #png(
+        #  title,
+        #  width = 11,
+        #  height = 9,
+        #  units = "in",
+        #  res = 300
+        #)
+         #
+        fa.diagram(m.3, main = mens)
+        #dev.off()
+        locator(1)
+      } else{
+        cat(j, ",", i, "and", k, "Factor(s)
+            did not fit well\n","RMSEA = ",m.3$RMSEA[[1]],
+            "and TLI = ",m.3$TLI)
+
+      }
+    }
+  }
+}
+
+#loadings
+(m.3$loadings)
+#Percentage explanation of the model
+round(m.3$Vaccounted,2)
+write.table(round(m.3$Vaccounted,2),
+            "Others/var.accoumted.txt",sep = ";")
+
+#Cumunalidades
+m.3$communalities
+comm = data.frame(
+  "Sample" = c(colnames(A),
+               colnames(A)),
+  "value" = c(m.3$communalities,
+              (1 - m.3$communalities)),
+  "variable" = c(rep(c("u2","h2" ),
+                     c(length(colnames(A)),
+                        length(colnames(A))
+                       )
+                     )
+                 )
+  )
+
+fa.diagram(m.3, main = mens)
+comm$variable = as.factor(comm$variable)
+levels(comm$variable ) = c("Specific variance",
+                           "Communality")
+
+comm$variable = factor(comm$variable,
+                       levels = c("Specific variance",
+                                  "Communality"))
+
+
+
+#comm$factor = ifelse(comm$Sample == "pH" |
+#                       comm$Sample == "Cyano" |
+#                       comm$Sample == "Turb","Factor 1",
+#                     ifelse(comm$Sample =="Phyco","Factor 4",
+#                            ifelse(comm$Sample=="Green"|
+#                                     comm$Sample=="Red", "Factor 3","Factor 2")))
+comm = comm[order(comm$factor,decreasing = F),]
+comm$Sample = as.factor(comm$Sample)
+comm$Sample = factor(comm$Sample,
+                     levels = c("Cyano","Turb","pH",
+                                "DO", "Temp", "TC","Cond",
+                                "Green", "Red",
+                                "Phyco"))
+
+Factor1 = graph2(comm[comm$factor =="Factor 1",],
+                 pos = "none")+
+  scale_fill_manual(values = c(gray(.4,),
+                               gray(.7)))+
+  facet_grid(~factor)+
+  geom_hline(yintercept =  .5);Factor1
+
+Factor2 = graph2(comm[comm$factor =="Factor 2",],
+                 pos = "none")+
+
+  scale_fill_manual(values = c(gray(.4,),
+                               gray(.7)))+
+  facet_grid(~factor)+
+  geom_hline(yintercept =  .5);Factor2
+
+Factor3 = graph2(comm[comm$factor =="Factor 3",],pos = "none")+
+  scale_fill_manual(values = c(gray(.4,),
+                               gray(.7)))+
+  facet_grid(~factor)+
+  geom_hline(yintercept =  .5);Factor3
+
+Factor4 = graph2(comm[comm$factor =="Factor 4",],
+                 pos = "right")+
+  scale_fill_manual(values = c(gray(.4,),
+                               gray(.7)))+
+  facet_grid(~factor)+
+  geom_hline(yintercept =  .5);Factor4
+
+cml = plot_grid(Factor1,Factor2,Factor3,Factor4)
+ggsave(
+  filename = "communalities.png",
+  device = "png",
+  plot = cml,
+  width = 8,
+  height = 4,
+  units = "in",
+  scale = 1.25
+)
+
+#Loadings
+loadings(m.3, list = (cutoff = .5))
+
+## Loading Factors
+
+Ld<-data.frame(loadings(m.3)[,1:3])
+# Col. items
+Ld$Items<-row.names(Ld)
+# Reorder
+Ord <-7:1
+Ld$Items <- reorder(Ld$Items, Ord)
+
+colnames(Ld)[1:3]<-c("Factor 1",
+                     "Factor 2","Factor 3"
+                     )
+
+loadings.m <- melt(Ld, id="Items",
+                   measure=c("Factor 1",
+                             "Factor 2",
+                             "Factor 3"),
+                   variable.name="Factors",
+                   value.name="Loadings")
+
+colnames(loadings.m) =c("Variables",
+                        "Factors",
+                        "Loadings")
+L = ggplot(loadings.m, aes(Variables,
+                           Loadings,
+                           fill=abs(Loadings))) +
+  facet_wrap(~ Factors, nrow=1) +
+  geom_bar(stat="identity") +
+  coord_flip() + #change axes
+  scale_fill_gradient2(name = "Loadings",
+                       high = gray(.2),
+                       mid = gray(.5),
+                       low = gray(.9),
+                       midpoint=0,
+                       guide=F) +
+  ylab("Loading" ) + #
+  theme_bw(base_size=10);L
+ggsave(
+  filename = "Loading_3_A4.png",
+  device = "png",
+  plot = L,
+  width = 8,
+  height = 6,
+  units = "in",
+  scale = 1.35
+)
+
+
+
+
+d = as.data.frame(cbind(C,m.3$scores))
+colnames(d) = c("Concentration",
+                "Factor 1",
+                "Factor 2",
+                "Factor 3")
+d$Concentration = as.factor(d$Concentration)
+levels(d$Concentration) = c("0", "5", "10")
+
+
+
+d.melt = melt(d, id="Concentration",
+              measure=c("Factor 1",
+                        "Factor 2",
+                        "Factor 3"),
+              variable.name="Factors",
+              value.name="Factor scores")
+
+
+
+
 
