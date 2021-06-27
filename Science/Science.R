@@ -503,6 +503,14 @@ d1 = d1[d1$Time == "Day 0" |
             d1$Time == "Day 7" |
             d1$Time == "Day 14",]
 
+d1$Time = factor(as.factor(as.character(d1$Time)),
+                 levels = c("Day 0",
+                            "Day 7", "Day 14" ))
+d1$Sample = factor(as.factor(as.character(d1$Sample)),
+                 levels = c("Control",
+                            "Treatment"))
+
+
 
 # 3. 7 - Other tasks: any additional/optional rules can
 #        be applied to improve data quality.
@@ -533,7 +541,7 @@ C = d1[, !t(a)]       # Factor variable only
 
 #transform data: MaxMin
 
-d1.t = apply(d1[,-c(1,2)],
+d1.t = apply(A[,c(3,4,7,9,17,18)],
              2,
              function (x) {(max(x)-x)/(max(x)-min(x))} )
 
@@ -551,21 +559,15 @@ unique(g$Parameter)
 
 i = g[g$Parameter=="Transparency" |
       g$Parameter=="Turbidity" |
-      g$Parameter=="Tcolor" |
-      g$Parameter=="Temperature" |
-      g$Parameter=="pH"|
-      g$Parameter=="Conductivity",];i
+      g$Parameter== "pH" |
+      g$Parameter=="DO",];i
 
 a = graph_bar(i);a
 
-i = g[g$Parameter=="DO" |
-      g$Parameter=="254um" |
-      g$Parameter=="Nitrite" |
-      g$Parameter=="Nitrate" |
-      g$Parameter=="Orthophosphate"|
-      g$Parameter=="Sulfate",];i
+i = g[g$Parameter=="TOC" |
+      g$Parameter=="DOC",];i
 
-b = graph_bar(i);b
+b = graph_bar(i,"right");b
 
 i = g[g$Parameter=="Fluoride" |
       g$Parameter=="Chloride" |
@@ -575,9 +577,9 @@ i = g[g$Parameter=="Fluoride" |
 
 c = graph_bar(i,"right");c
 
-e=plot_grid(a,b,c, ncol = 1);e
+e=plot_grid(a,b, ncol = 1);e
 
-ggsave(filename = "graphics/overview_bargraph.png",
+ggsave(filename = "graphics/overview_bargraph_pca.png",
        plot = e,
        device = "png",
        height = 9,
@@ -587,7 +589,7 @@ ggsave(filename = "graphics/overview_bargraph.png",
 
 # 6.2 - Line graph for d2.t ------------------------------------------------------
 
-d2.t = apply(d1[,-c(1,2)],
+d2.t = apply(A[,c(3,4,7,9,17,18)],
              2,
               scale)
 
@@ -600,24 +602,19 @@ g$Time  = factor(as.factor(g$Time),
                  levels = c("Day 0",
                             "Day 7",
                             "Day 14"))
+
 unique(g$Parameter)
 h = g[g$Parameter=="Transparency" |
       g$Parameter=="Turbidity" |
-      g$Parameter=="Tcolor" |
-      g$Parameter=="Temperature" |
-      g$Parameter=="pH"|
-      g$Parameter=="Conductivity",]
+      g$Parameter== "pH" |
+      g$Parameter=="DO",];h
 
 a = graph_line(h);a
 
-h = g[g$Parameter=="DO" |
-      g$Parameter=="254um" |
-      g$Parameter=="Nitrite" |
-      g$Parameter=="Nitrate" |
-      g$Parameter=="Orthophosphate"|
-      g$Parameter=="Sulfate",]
+h = g[g$Parameter=="TOC" |
+        g$Parameter=="DOC",];h
 
-b = graph_line(h);b
+b = graph_line(h,leg = "right");b
 
 h = g[g$Parameter=="Fluoride" |
       g$Parameter=="Chloride" |
@@ -626,9 +623,9 @@ h = g[g$Parameter=="Fluoride" |
       g$Parameter=="DTC",]
 c = graph_line(h,leg = "right");c
 
-d=plot_grid(a,b,c, ncol = 1);d
+d=plot_grid(a,b, ncol = 1);d
 
-ggsave(filename = "graphics/overview_linegraph.png",
+ggsave(filename = "graphics/overview_linegraph_line.png",
        plot = d,
        device = "png",
        height = 9,
@@ -695,8 +692,8 @@ png(
 N = N[,c("Transparency","Turbidity", "Tcolor",
          "Temperature","pH", "DO","254um",
          "Nitrate", "Orthophosphate", "TOC","DOC")]
-
-kmo.max = opt.KMO(N[,-5])
+N = N[,c(1,2,5,7,8,10,11,17)]
+kmo.max = opt.KMO(N)
 dev.off()
 colnames(N)
 
@@ -1027,6 +1024,79 @@ d.melt = melt(d, id="Concentration",
               variable.name="Factors",
               value.name="Factor scores")
 
+
+
+
+# PCA ---------------------------------------------------------------------
+
+res.pca <- PCA(A[,-c(1:2,5,6,8,10,11,12,13,14,15,16,19)], graph = FALSE)
+print(res.pca)
+
+#Eigenvalues / Variances
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+
+a =fviz_eig(res.pca,
+            addlabels = TRUE,
+            ylim = c(0, 50))
+
+
+biplot = fviz_pca_biplot(res.pca,
+                         col.ind = A$Time,
+                         addEllipses = TRUE,ellipse.type = "confidence",
+                         label = "var", # hide individual labels
+                         palette = "npg",
+                         title = "",
+                         col.var = "black",
+                         alpha.var =  "cos2",
+                         legend.title = "Concentration")+theme_cowplot()
+biplot
+
+ggsave(filename = "graphics/PCA_1.png",
+       plot = biplot,
+       device = "png",
+       height = 9,
+       width = 13,
+       units = "in",
+       dpi = "retina" )
+
+
+biplot2 = fviz_pca_biplot(res.pca,
+                         col.ind = A$Sample,
+                         addEllipses = TRUE,ellipse.type = "confidence",
+                         label = "var", # hide individual labels
+                         palette = "npg",
+                         title = "",
+                         col.var = "black",
+                         alpha.var =  "cos2",
+                         legend.title = "Concentration")+theme_cowplot()
+biplot
+
+ggsave(filename = "graphics/PCA_1.png",
+       plot = biplot,
+       device = "png",
+       height = 9,
+       width = 13,
+       units = "in",
+       dpi = "retina" )
+
+res.hcpc <- HCPC(res.pca, graph = FALSE)
+
+plot(res.hcpc, choice = "3D.map",)
+
+# The plot is also known as variable correlation plots or biplot.
+# It shows the relationships between all variables.
+# It can be interpreted as follow:
+# -> Positively correlated variables are grouped together.
+# -> Negatively correlated variables are positioned on opposite
+#    sides of the plot origin (opposedquadrants).
+# -> Orthogonal variables mean no correlation
+# -> The distance between variables and the origin measures the
+#    quality of the variables on the factor map.
+# -> Variables that are away from the origin are well represented
+#    on the factor map;
+# The quality of representation of the variables on factor map is called cos2
+# (square cosine, squared coordinates)
 
 
 
