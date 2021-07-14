@@ -1,10 +1,10 @@
-# 1 - Dir and librarys  -----------------------------------------------
+# 1 - Dir and libraries  -----------------------------------------------
 rm(list = ls())
 #Dir
-local = "C:\\Users\\User\\Documents\\Projects\\R-private\\Science"
+local = "D:/Documents/Projects/R-private/Science"
 setwd(local)
 
-#librarys
+#libraries
 
 library(readxl)
 library(reshape2)
@@ -17,7 +17,7 @@ library(tidyverse)
 library(tidyr)
 library(rela)
 library(psych)
-
+library(Rcpp)
 # 2 - Functions --------------------------------------------------------------
 
 #Percentage NA Function
@@ -478,11 +478,11 @@ data$Time = factor(data$Time, levels = c("0 h",
                                          "504 h",
                                          "720 h"))
 levels(data$Time) = c( "Day 0",
+                       "Day 3",
                        "Day 7",
                       "Day 14",
                       "Day 21",
-                      "Day 28",
-                      "Day 35")
+                      "Day 30")
 
 
 levels(data$Sample)
@@ -500,18 +500,26 @@ d1 = data[data$Sample!="Raw water",]
 # Time > "Day 14"  data is not relevant to this analysis
 
 d1 = d1[d1$Time == "Day 0" |
+            d1$Time == "Day 3" |
             d1$Time == "Day 7" |
-            d1$Time == "Day 14",]
+          d1$Time == "Day 14",]
 
 d1$Time = factor(as.factor(as.character(d1$Time)),
                  levels = c("Day 0",
-                            "Day 7", "Day 14" ))
+                            "Day 3",
+                            "Day 7",
+                            "Day 14" ))
 d1$Sample = factor(as.factor(as.character(d1$Sample)),
-                 levels = c("Control",
-                            "Treatment"))
+                 levels = c("Treatment",
+                            "Control"))
 
+d1$Sample2 = ifelse(d1$Sample =="Treatment",
+                    "Control",
+                    "Treatment")
 
+d1$Sample = as.factor(d1$Sample2)
 
+d1 = d1[,-20]
 # 3. 7 - Other tasks: any additional/optional rules can
 #        be applied to improve data quality.
 
@@ -552,11 +560,16 @@ g = ds_for_graph(d = d1.t,
                  n.fac = 1)[[5]];g
 g$Time  = factor(as.factor(g$Time),
                  levels = c("Day 0",
+                            "Day 3",
                             "Day 7",
                             "Day 14"))
-
+g$variable = factor(g$variable,
+                    levels = c("Treatment",
+                               "Control") )
+g$variable2 = ifelse(g$variable=="Treatment",
+                     "Control","Treatment")
 unique(g$Parameter)
-
+g$variable = g$variable2
 i = g[g$Parameter=="Transparency" |
       g$Parameter=="Turbidity" |
       g$Parameter== "pH" |
@@ -600,8 +613,14 @@ g = ds_for_graph(d = d2.t,
                  n.fac = 1)[[5]];g
 g$Time  = factor(as.factor(g$Time),
                  levels = c("Day 0",
+                            "Day 3",
                             "Day 7",
                             "Day 14"))
+
+g$variable2 = ifelse(g$variable=="Treatment",
+                     "Control","Treatment")
+g$variable = g$variable2
+
 
 unique(g$Parameter)
 h = g[g$Parameter=="Transparency" |
@@ -1061,7 +1080,7 @@ ggsave(filename = "graphics/PCA_1.png",
        dpi = "retina" )
 
 
-biplot2 = fviz_pca_biplot(res.pca,
+biplot = fviz_pca_biplot(res.pca,
                          col.ind = A$Sample,
                          addEllipses = TRUE,ellipse.type = "confidence",
                          label = "var", # hide individual labels
@@ -1072,6 +1091,21 @@ biplot2 = fviz_pca_biplot(res.pca,
                          legend.title = "Concentration")+theme_cowplot()
 biplot
 
+
+biplot2 = fviz_pca_biplot(res.pca,
+                          col.ind = A$Sample,
+                          addEllipses = TRUE,ellipse.type = "confidence",
+                          label = "var", # hide individual labels
+                          palette = "npg",
+                          title = "",
+                          col.var = "black",
+                          alpha.var =  "cos2",
+                          legend.title = "Concentration")+theme_cowplot()
+biplot2
+
+
+biplot3 = plot_grid(biplot,biplot2)
+
 ggsave(filename = "graphics/PCA_1.png",
        plot = biplot,
        device = "png",
@@ -1079,6 +1113,23 @@ ggsave(filename = "graphics/PCA_1.png",
        width = 13,
        units = "in",
        dpi = "retina" )
+
+ggsave(filename = "graphics/PCA_2.png",
+       plot = biplot2,
+       device = "png",
+       height = 9,
+       width = 13,
+       units = "in",
+       dpi = "retina" )
+
+ggsave(filename = "graphics/PCA_3.png",
+       plot = biplot3,
+       device = "png",
+       height = 9,
+       width = 13,
+       units = "in",
+       dpi = "retina" )
+
 
 res.hcpc <- HCPC(res.pca, graph = FALSE)
 
