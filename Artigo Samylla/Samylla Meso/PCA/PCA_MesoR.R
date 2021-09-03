@@ -1,9 +1,10 @@
 ### Base de dados ###
 getwd()
-local = "C:/Users/User/Documents/Projects/R-private/Artigo Samylla/Samylla Meso/PCA"
+local = "D:/Documents/Projects/R-private/Artigo Samylla/Samylla Meso/PCA"
 setwd(local)
 library(readxl)
-BasePCA <- read_excel("BaseFinalPca.xlsx", sheet = "PCA")
+BasePCA <- read_excel("BaseFinalPca.xlsx",
+                      sheet = "PCA")
 
 df.pca = as.data.frame(BasePCA)
 str(df.pca)
@@ -152,6 +153,8 @@ levels(a$h4_p) = c("0 % [0 h]",
                    "< 50 % [720 h]")
 str(a)
 
+a$Amostra = rep(rep(c("Tratamento","Controle"),c(3,3)),6)
+a = a[,c(10,1:9)]
 
 # Grafico turbidez --------------------------------------------------------
 
@@ -163,19 +166,26 @@ ylabel.p = "Turbidez (uT)"
 xlabel=""
 xlabel.p = "\nPercentual de iluminação [Tempo]"
 
-Tb4 = ggplot(a, aes(x = h4, y = `Turbidity (uT)`))+
+Tb4.1 = ggplot(a, aes(x = h4_p, y = Turbidity, fill = Amostra))+
+  geom_boxplot()+
+  theme_cowplot()+
+  ylab(ylabel.p)+
+  xlab(xlabel.p);Tb4.1
+
+Tb4.2 = ggplot(a, aes(x = h4_p, y = Turbidity))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
   theme_cowplot()+
-  ylab(ylabel)+
-  xlab(xlabel)+
+  ylab("")+
+  xlab(xlabel.p)+
   annotate("text",
            x = c(1.25,4.25,2.25,3.25),
            y = c(7.3,7.35,5.2,5.9),
-           label = c("(A)","(A,C)","(B)","(B,C)"));Tb4
-ggsave(filename = "Turbidez_new_english.png",plot = Tb4,
-       device = "png",scale = 2,
-       width = 5,height = 3,units = "in")
+           label = c("(A)","(A,C)","(B)","(B,C)"));Tb4.2
+Tb4 = plot_grid(Tb4.1,Tb4.2, labels = "AUTO");Tb4
+ggsave(filename = "graphics/Turbidez_def.png",plot = Tb4,
+         device = "png",
+       width = 18, height = 7,units = "in")
 
 pairwise.wilcox.test(a$`Turbidity (uT)`,
                      a$h4,
@@ -191,28 +201,35 @@ pairwise.wilcox.test(a$`Turbidity (uT)`,
 ylabel = "Transparency (cm)"
 ylabel.p = "Transparência (cm)"
 
+Tb4.1 = ggplot(a, aes(x = h4_p, y = Transparency, fill = Amostra))+
+  geom_boxplot()+
+  theme_cowplot()+
+  ylab(ylabel.p)+
+  xlab(xlabel.p);Tb4.1
 
-Tb4 = ggplot(a, aes(x = a$h4, y = a$`Transparency (cm)`))+
+Tb4.2 = ggplot(a, aes(x = h4_p, y = Transparency))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
   theme_cowplot()+
-  ylab(ylabel)+
+  ylab("")+
   xlab(xlabel)+
   annotate("text",
            x = c(1.25,4.25,2.25,3.25),
            y = c(53.3,61.3,97.2,60.9),
-           label = c("(A)","(A,C)","(B,C)","(B,C)"));Tb4
+           label = c("(A)","(A,C)","(B,C)","(B,C)"));Tb4.2
 
-ggsave(filename = "Transparency_new_english.png",plot = Tb4,
-       device = "png",scale = 2,
-       width = 5,height = 3,units = "in")
+Tb4 = plot_grid(Tb4.1,Tb4.2, labels = "AUTO");Tb4
+ggsave(filename = "graphics/Transparency_def.png",plot = Tb4,
+       device = "png",
+       width = 18, height = 7,units = "in")
+
 
 Tb4 = ggplot(a, aes(x = h4_p, y = `Transparency (cm)`))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
   theme_cowplot()+
-  ylab(ylabel.p)+
-  xlab(xlabel.p)+
+  ylab(ylabel)+
+  xlab(xlabel)+
   annotate("text",
            x = c(1.25,4.25,2.25,3.25),
            y = c(53.3,61.3,97.2,60.9),
@@ -233,6 +250,7 @@ Tb4 = ggplot(a, aes(x = a$h4_p, y = a$`Transparency (cm)`))+
            y = c(53.3,61.3,97.2,60.9),
            label = c("(A)","(A,C)","(B,C)","(B,C)"));Tb4
 
+
 ggsave(filename = "Transparência_new.png",plot = Tb4,
        device = "png",scale = 2,
        width = 5,height = 3,units = "in")
@@ -252,19 +270,29 @@ pairwise.wilcox.test(a$`Transparency (cm)`,
 ylabel = "Dissolved oxygen (mg/L)"
 ylabel.p = "Oxigênio dissolvido (mg/L)"
 
-Tb4 = ggplot(a, aes(x = a$h4, y = a$`Dissolved oxygen  (mg/L)`))+
+Tb4.1 = ggplot(a, aes(x = h4_p, y = DO, fill = Amostra))+
+  geom_boxplot()+
+  theme_cowplot()+
+  ylab(ylabel.p)+
+  xlab(xlabel.p);Tb4.1
+
+Tb4.2 = ggplot(a, aes(x = h4_p, y = DO))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
   theme_cowplot()+
-  ylab(ylabel)+
+  ylab("")+
   xlab(xlabel)+
   annotate("text",
            x = c(1.25,4.25,2.25,3.25),
            y = c(9,5,5.2,4.75),
-           label = c("(A)","(B)","(B)","(B)"));Tb4
-ggsave(filename = "Dissolved oxygen.png",plot = Tb4,
-       device = "png",scale = 2,
-       width = 5,height = 3,units = "in")
+           label = c("(A)","(B)","(B)","(B)"));Tb4.2
+
+
+Tb4 = plot_grid(Tb4.1,Tb4.2, labels = "AUTO");Tb4
+ggsave(filename = "graphics/DO_def.png",plot = Tb4,
+       device = "png",
+       width = 18, height = 7,units = "in")
+
 
 Tb4 = ggplot(a, aes(x = a$h4_p, y = a$`Dissolved oxygen  (mg/L)`))+
   geom_boxplot()+
@@ -293,19 +321,29 @@ pairwise.wilcox.test(a$`Dissolved oxygen  (mg/L)`,
 ylabel= "Dissolved Organic Carbon (mg/L)"
 ylabel.p = "Carbono orgânico dissolvido (mg/L)"
 
-Tb4 = ggplot(a, aes(x = a$h4, y = a$`Dissolved Organic Carbon (mg/L)`))+
+Tb4.1 = ggplot(a, aes(x = h4_p, y = DOC, fill = Amostra))+
+  geom_boxplot()+
+  theme_cowplot()+
+  ylab(ylabel.p)+
+  xlab(xlabel.p);Tb4.1
+
+
+Tb4.2 = ggplot(a, aes(x = h4_p, y = DOC ))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
   theme_cowplot()+
-  ylab(ylabel)+
+  ylab("")+
   xlab(xlabel)+
   annotate("text",
            x = c(1.25,4.25,2.25,3.25),
            y = c(16.8, 12, 17.5, 17.5),
-           label = c("(A)","(B)","(A)","(A)"));Tb4
-ggsave(filename = "Dissolved Organic Carbon.png",plot = Tb4,
-       device = "png",scale = 2,
-       width = 5,height = 3,units = "in")
+           label = c("(A)","(B)","(A)","(A)"));Tb4.2
+
+Tb4 = plot_grid(Tb4.1,Tb4.2, labels = "AUTO");Tb4
+ggsave(filename = "graphics/DOC_def.png",plot = Tb4,
+       device = "png",
+       width = 18, height = 7,units = "in")
+
 
 Tb4 = ggplot(a, aes(x = a$h4_p, y = a$`Dissolved Organic Carbon (mg/L)`))+
   geom_boxplot()+
@@ -334,7 +372,13 @@ pairwise.wilcox.test(a$`Dissolved Organic Carbon (mg/L)`,
 ylabel= "Total Organic Carbon (mg/L)"
 ylabel.p="Carbono orgânico total (mg/L)"
 
-Tb4 = ggplot(a, aes(x = a$h4, y = a$`Total Organic Carbon (mg/L)`))+
+Tb4.1 = ggplot(a, aes(x = h4_p, y = TOC, fill = Amostra))+
+  geom_boxplot()+
+  theme_cowplot()+
+  ylab(ylabel.p)+
+  xlab(xlabel.p);Tb4.1
+
+Tb4.2 = ggplot(a, aes(x = h4_p, y = TOC))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
   theme_cowplot()+
@@ -343,12 +387,12 @@ Tb4 = ggplot(a, aes(x = a$h4, y = a$`Total Organic Carbon (mg/L)`))+
   annotate("text",
          x = c(1.25,4.25,2.25,3.25),
          y = c(18, 12.5, 19.5, 19.5),
-         label = c("(A)","(B)","(A)","(A)"));Tb4
+         label = c("(A)","(B)","(A)","(A)"));Tb4.2
 
-ggsave(filename = "Total Organic Carbon.png",plot = Tb4,
-       device = "png",scale = 2,
-       width = 5,height = 3,units = "in")
-
+Tb4 = plot_grid(Tb4.1,Tb4.2, labels = "AUTO");Tb4
+ggsave(filename = "graphics/TOC_def.png",plot = Tb4,
+       device = "png",
+       width = 18, height = 7,units = "in")
 Tb4 = ggplot(a, aes(x = a$h4_p, y = a$`Total Organic Carbon (mg/L)`))+
   geom_boxplot()+
   stat_summary(fun.y=mean, geom="point", shape= 8, size=2)+
@@ -360,9 +404,10 @@ Tb4 = ggplot(a, aes(x = a$h4_p, y = a$`Total Organic Carbon (mg/L)`))+
            y = c(18, 12.5, 19.5, 19.5),
            label = c("(A)","(B)","(A)","(A)"));Tb4
 
-ggsave(filename = "Carbono orgânico total.png",plot = Tb4,
-       device = "png",scale = 2,
-       width = 5,height = 3,units = "in")
+Tb4 = plot_grid(Tb4.1,Tb4.2, labels = "AUTO");Tb4
+ggsave(filename = "graphics/DOC_def.png",plot = Tb4,
+       device = "png",
+       width = 18, height = 7,units = "in")
 
 pairwise.wilcox.test(a$`Total Organic Carbon (mg/L)`,
                      a$h4,
