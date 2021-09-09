@@ -1,182 +1,380 @@
+# Libraries, work directory and data set  ---------------------------------
 require(ggplot2)
+require(cowplot)
 require(gridExtra)
 require(betareg)
 require(hnp)
 require(xtable)
-
-dados=read.csv(file.choose())
-head(dados)
-summary(dados)
-dados$Tratamento=as.factor(ifelse(dados$Percentual==0,0,1))
-dados$Outros=dados$Bacillariophyta+dados$Charophyta+dados$Chlorophyta+
-  dados$Cryptophyta+dados$Euglenozoa+dados$Ochrophyta
-dados$Tempo=as.factor(dados$Tempo)
-dados$Amostra=as.factor(dados$Amostra)
+require(readxl)
+rm(list = ls())
+setwd("D:/Documents/Projects/R-private/beta")
+data=read_excel("Datasets/Dataset2.xlsx")
 
 
-dados2=cbind.data.frame(dados$Tempo, dados$Tratamento, dados$Amostra
-                        ,dados$Outros, dados$Cyanobacteria, dados$Isimp., dados$Ishan., dados$ID
-                        , dados$IE)
-#dados2=dados2[-which(dados$Amostra==2 | dados$Amostra==5),]
-colnames(dados2)=c("Tempo", "Tratamento", "Amostra", "Outros", "Cyanobacteria"
+# Exploratory analysis and  data visualization --------------------------
+
+head(data)
+summary(data)
+data$Treatment=as.factor(ifelse(data$Percentual==0,0,1))
+data$Day=as.factor(data$Day)
+data$Sample=as.factor(data$Sample)
+
+dataset=cbind.data.frame(data$Day,
+                      data$Treatment,
+                      data$Sample,
+                      data$Others,
+                      data$Cyanobacteria,
+                      data$Isimp.,
+                      data$Ishan.,
+                      data$ID,
+                      data$IE)
+
+colnames(dataset)=c("Day", "Treatment", "Sample", "Others", "Cyanobacteria"
                    ,"Isimp", "Ishan", "ID", "IE")
 
-dados2$Tratamento[1:3]=1
-dados_controle=dados2[dados2$Tratamento==0,]
-dados_tratamento=dados2[dados2$Tratamento==1,]
+# Day 0 adjustment
+dataset$Treatment[1:3]=1
+
+data_control=dataset[dataset$Treatment==0,]
+data_treatment=dataset[dataset$Treatment!=0,]
+
+# Cyanobacteria data visualization ----------------------------------------
+
+ggplot(dataset)+
+  aes(Cyanobacteria)+
+  geom_histogram(fill="white",color="black")+
+  theme_cowplot()
+
+summary(dataset$Cyanobacteria)
+
+# Boxplot
+(ggplot(dataset)+
+    aes(Treatment, Cyanobacteria)+
+    geom_boxplot(fill="white",color="black")+
+    theme_classic()+
+    stat_summary(fun=mean,
+                 geom="point",
+                 shape= 8,
+                 size=2))
+
+ggplot(dataset)+
+  aes(Cyanobacteria)+
+  geom_histogram(fill="white",
+                 color="black",
+                 bins = 30)+
+  theme_cowplot()+
+  facet_grid(~Treatment)
+
+wilcox.test(data_treatment$Cyanobacteria,data_control$Cyanobacteria)
+
+# Lines comparing means in relation
+# to time and treatment
+(ggplot()+
+  stat_summary(data=data_control,
+                aes(x=Day,
+                    y=Cyanobacteria,
+                    linetype="Control"),
+                fun = mean, geom="line",
+                group=1)+
+  stat_summary(data=data_treatment,
+               aes(x=Day,
+                   y=Cyanobacteria,
+                   linetype="Treatment"),
+               fun = mean,
+               geom="line",
+               group=1)+
+  theme_classic()+
+  scale_linetype_manual("Sample",
+                        values=c("Treatment"=2,
+                                 "Control"=1)))
+dataset$Treatment2 = as.factor(ifelse(dataset$Treatment==1,"Yes","No"))
+
+# Others data visualization -------------------------------------------------------------
+
+ggplot(dataset)+
+  aes(Others)+
+  geom_histogram(fill="white",color="black")+
+  theme_classic()
+summary(dataset$Others)
+
+# Box plot
+(ggplot(dataset)+
+  aes(Treatment2, Others)+
+  geom_boxplot(fill="white",color="black")+
+  theme_classic()+
+  stat_summary(fun=mean, geom="point", shape= 8, size=2))
+
+wilcox.test(data_control$Others,data_treatment$Others)
+
+# Lines comparing means in relation
+# to time and treatment
+
+(ggplot()+
+  stat_summary(data=data_control,
+                aes(x=Day,
+                    y=Others,
+                    linetype="Control"),
+                fun = mean,
+                geom="line",
+                group=1)+
+  stat_summary(data=data_treatment,
+               aes(x=Day,
+                   y=Others,
+                   linetype="Treatment"),
+               fun = mean,
+               geom="line",
+               group=1)+
+  theme_classic()+
+  scale_linetype_manual("Sample",
+                        values=c("Treatment"=2,
+                                 "Control"=1)))
 
 
-#####Variável Cyanobacteria
+# Isimp data visualization ------------------------------------------------
 
-ggplot(dados2)+aes(Cyanobacteria)+geom_histogram(fill="white",color="black")+theme_classic()
-
-summary(dados2$Cyanobacteria)
-
-#Boxplot entre os tratamentos, realizar teste de medianas e médias.
-(ggplot(dados2)
-+aes(Tratamento, Cyanobacteria)+geom_boxplot(fill="white",color="black")
-+theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2))
-
-ggplot(dados2)+aes(Cyanobacteria)+geom_histogram(fill="white",color="black")+theme_classic()+facet_grid(~Tratamento)
-
-wilcox.test(dados_controle$Cyanobacteria,dados_tratamento$Cyanobacteria)
-
-#Linhas comparando as médias em relação ao tempo e tratamento
-(ggplot()
-  +stat_summary(data=dados_controle, aes(x=Tempo,y=Cyanobacteria, 
-              linetype="Controle"), fun = mean, geom="line",group=1)
-  +stat_summary(data=dados_tratamento, aes(x=Tempo,y=Cyanobacteria, 
-              linetype="Tratamento"), fun = mean, geom="line",group=1)
-  +theme_classic()
-  +scale_linetype_manual("Tipo de tratamento", values=c("Tratamento"=2,"Controle"=1)))
-
-#####Variável Outros
-
-ggplot(dados2)+aes(Outros)+geom_histogram(fill="white",color="black")+theme_classic()
-summary(dados2$Outros)
-
-#Boxplot entre os tratamentos, realizar teste de medianas e médias.
-(ggplot(dados2)
-  +aes(Tratamento, Outros)+geom_boxplot(fill="white",color="black")
-  +theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2))
-
-wilcox.test(dados_controle$Outros,dados_tratamento$Outros)
-#Linhas comparando as médias em relação ao tempo e tratamento
-(ggplot()
-  +stat_summary(data=dados_controle, aes(x=Tempo,y=Outros, 
-                     linetype="Controle"), fun = mean, geom="line",group=1)
-  +stat_summary(data=dados_tratamento, aes(x=Tempo,y=Outros, 
-                     linetype="Tratamento"), fun = mean, geom="line",group=1)
-  +theme_classic()
-  +scale_linetype_manual("Tipo de tratamento", values=c("Tratamento"=2,"Controle"=1)))
-
-#####Variável Isimp
-
-hist1=ggplot(dados2)+aes(Isimp)+geom_histogram(fill="white",color="black")+theme_classic()
+hist1=ggplot(dataset)+
+  aes(Isimp)+
+  geom_histogram(fill="white",
+                 color="black")+
+  theme_classic()
 hist1
-summary(dados2$Isimp)
+summary(dataset$Isimp)
 
-#Boxplot entre os tratamentos, realizar teste de medianas e médias.
-(ggplot(dados2)
-  +aes(Tratamento, Isimp,fill=Tratamento)+geom_boxplot()
+# Box plot
+b1 = (ggplot(dataset)
+  +aes(Treatment2, Isimp,fill=Treatment)+geom_boxplot()
   +theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2)
   +scale_fill_manual(values=c("white","gray"))
-  +theme(legend.position="none"))
+  +theme(legend.position="none")
+  +xlab("Treatment"))
+b1
+wilcox.test(data_control$Isimp,data_treatment$Isimp)
 
-wilcox.test(dados_controle$Isimp,dados_tratamento$Isimp)
 
-#Linhas comparando as médias em relação ao tempo e tratamento
-(ggplot()
-  +stat_summary(data=dados_controle, aes(x=Tempo,y=Isimp, 
-                     linetype="Controle"), fun = mean, geom="line",group=1)
-  +stat_summary(data=dados_tratamento, aes(x=Tempo,y=Isimp, 
-                     linetype="Tratamento"), fun = mean, geom="line",group=1)
-  +theme_classic()
-  +scale_linetype_manual("Tipo de tratamento", values=c("Tratamento"=2,"Controle"=1)))
+# Lines comparing means in relation
+# to time and treatment
 
-#####Variável Ishan
+l1 = (ggplot()+
+    stat_summary(data=data_control,
+                 aes(x=Day,
+                     y=Isimp,
+                     linetype="Control"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    stat_summary(data=data_treatment,
+                 aes(x=Day,
+                     y=Isimp,
+                     linetype="Treatment"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    theme_classic()+
+    scale_linetype_manual("Sample",
+                          values=c("Treatment"=2,
+                                   "Control"=1)))
 
-ggplot(dados2)+aes(Ishan)+geom_histogram(fill="white",color="black")+theme_classic()
-summary(dados2$Ishan)
+# Ishan data visualization -------------------------------------------------------------------------
 
-#Boxplot entre os tratamentos, realizar teste de medianas e médias.
-(ggplot(dados2)
-  +aes(Tratamento, Ishan,fill=Tratamento)+geom_boxplot()
-  +theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2)
-  +scale_fill_manual(values=c("white","gray"))
-  +theme(legend.position="none"))
-
-wilcox.test(dados_controle$Ishan,dados_tratamento$Ishan)
-#Linhas comparando as médias em relação ao tempo e tratamento
-(ggplot()
-  +stat_summary(data=dados_controle, aes(x=Tempo,y=Ishan, 
-                       linetype="Controle"), fun = mean, geom="line",group=1)
-  +stat_summary(data=dados_tratamento, aes(x=Tempo,y=Ishan, 
-                       linetype="Tratamento"), fun = mean, geom="line",group=1)
-  +theme_classic()
-  +scale_linetype_manual("Tipo de tratamento", values=c("Tratamento"=2,"Controle"=1)))
-
-#####Variável ID
-
-hist2=ggplot(dados2)+aes(ID)+geom_histogram(fill="white",color="black")+theme_classic()
+hist2=ggplot(dataset)+
+  aes(Ishan)+
+  geom_histogram(fill="white",
+                 color="black")+
+  theme_classic()
 hist2
-summary(dados2$ID)
+summary(dataset$Ishan)
 
-#Boxplot entre os tratamentos, realizar teste de medianas e médias.
-(ggplot(dados2)
-  +aes(Tratamento, ID,fill=Tratamento)+geom_boxplot()
+# Box plot
+b2 = (ggplot(dataset)
+  +aes(Treatment2, Ishan,fill=Treatment)+geom_boxplot()
   +theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2)
   +scale_fill_manual(values=c("white","gray"))
-  +theme(legend.position="none"))
+  +theme(legend.position="none")
+  +xlab("Treatment"))
+b2
+wilcox.test(data_control$Ishan,data_treatment$Ishan)
 
-wilcox.test(dados_controle$ID,dados_tratamento$ID)
-#Linhas comparando as médias em relação ao tempo e tratamento
-(ggplot()
-  +stat_summary(data=dados_controle, aes(x=Tempo,y=ID, 
-                       linetype="Controle"), fun = mean, geom="line",group=1)
-  +stat_summary(data=dados_tratamento, aes(x=Tempo,y=ID, 
-                       linetype="Tratamento"), fun = mean, geom="line",group=1)
-  +theme_classic()
-  +scale_linetype_manual("Tipo de tratamento", values=c("Tratamento"=2,"Controle"=1)))
 
-#####Variável IE
+# Lines comparing means in relation
+# to time and treatment
 
-hist3=ggplot(dados2)+aes(IE)+geom_histogram(fill="white",color="black")+theme_classic()
+l2 = (ggplot()+
+    stat_summary(data=data_control,
+                 aes(x=Day,
+                     y=Ishan,
+                     linetype="Control"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    stat_summary(data=data_treatment,
+                 aes(x=Day,
+                     y=Ishan,
+                     linetype="Treatment"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    theme_classic()+
+    scale_linetype_manual("Sample",
+                          values=c("Treatment"=2,
+                                   "Control"=1)))
+
+
+# ID data visualization ----------------------------------------------------------------------
+
+hist3=ggplot(dataset)+
+  aes(ID)+
+  geom_histogram(fill="white",
+                 color="black")+
+  theme_classic()
 hist3
-summary(dados2$Cyanobacteria)
+summary(dataset$ID)
 
-#Boxplot entre os tratamentos, realizar teste de medianas e médias.
-(ggplot(dados2)
-  +aes(Tratamento, IE, fill=Tratamento)+geom_boxplot()
+# Box plot
+b3 = (ggplot(dataset)
+  +aes(Treatment2, ID,fill=Treatment)+geom_boxplot()
   +theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2)
   +scale_fill_manual(values=c("white","gray"))
-  +theme(legend.position="none"))
-
-wilcox.test(dados_controle$IE, dados_tratamento$IE)
-#Linhas comparando as médias em relação ao tempo e tratamento
-(ggplot()
-  +stat_summary(data=dados_controle, aes(x=Tempo,y=IE, 
-                                         linetype="Controle"), fun = mean, geom="line",group=1)
-  +stat_summary(data=dados_tratamento, aes(x=Tempo,y=IE, 
-                                           linetype="Tratamento"), fun = mean, geom="line",group=1)
-  +theme_classic()
-  +scale_linetype_manual("Tipo de tratamento", values=c("Tratamento"=2,"Controle"=1)))
+  +theme(legend.position="none")
+  +xlab("Treatment"))
+b3
+wilcox.test(data_control$ID,data_treatment$Ishan)
 
 
+# Lines comparing means in relation
+# to time and treatment
+
+l3 = (ggplot()+
+    stat_summary(data=data_control,
+                 aes(x=Day,
+                     y=ID,
+                     linetype="Control"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    stat_summary(data=data_treatment,
+                 aes(x=Day,
+                     y=ID,
+                     linetype="Treatment"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    theme_classic()+
+    scale_linetype_manual("Sample",
+                          values=c("Treatment"=2,
+                                   "Control"=1)))
+
+
+# IE data visualization ---------------------------------------------------
+
+hist4=ggplot(dataset)+
+  aes(IE)+
+  geom_histogram(fill="white",
+                 color="black")+
+  theme_classic()
+hist4
+summary(dataset$Ishan)
+
+# Box plot
+b4 = (ggplot(dataset)
+  +aes(Treatment2, IE,fill=Treatment2)+geom_boxplot()
+  +theme_classic()+stat_summary(fun=mean, geom="point", shape= 8, size=2)
+  +scale_fill_manual(values=c("white","gray"))
+  +theme(legend.position="none")
+  +xlab("Treatment"))
+b4
+wilcox.test(data_control$Ishan,data_treatment$Ishan)
+
+
+# Lines comparing means in relation
+# to time and treatment
+
+l4 = (ggplot()+
+    stat_summary(data=data_control,
+                 aes(x=Day,
+                     y=IE,
+                     linetype="Control"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    stat_summary(data=data_treatment,
+                 aes(x=Day,
+                     y=Ishan,
+                     linetype="Treatment"),
+                 fun = mean,
+                 geom="line",
+                 group=1)+
+    theme_classic()+
+    scale_linetype_manual("Sample",
+                          values=c("Treatment"=2,
+                                   "Control"=1)))
+
+
+# Overview ----------------------------------------------------------------
+
+
+#histogram
+h = plot_grid(hist1,hist2,hist3,hist4, labels = "AUTO")
+h
+ggsave(filename = "graphics/histogram_overview.png",
+       plot = h,
+       device = "png",
+       width = 18, height = 7,units = "in")
+
+#boxplot
+
+b = plot_grid(b1,b2,b3,b4, labels = "AUTO")
+b
+ggsave(filename = "graphics/boxplot_overview.png",
+       plot = b,
+       device = "png",
+       width = 18, height = 7,units = "in")
+
+
+#lines
+
+l = plot_grid(l1,l2,l3,l4, labels = "AUTO")
+l
+ggsave(filename = "graphics/lines_overview.png",
+       plot = l,
+       device = "png",
+       width = 18, height = 7,units = "in")
 
 
 
-#Regressão Beta
-summary(dados2)
+#  Beta regression --------------------------------------------------------
+
+#backup: "dataset2"
+summary(dataset)
+dataset2=dataset
+
+#adjust for beta regression: transformation to scale 0.1
+# to 0.9 to avoid problems at the extremes
+
+dataset2$Ishan=0.1+(0.9-0.1)*(dataset2$Ishan-min(dataset2$Ishan))/(max(dataset2$Ishan)-min(dataset2$Ishan))
+
+# effect of transformation on Ishan
+summary(dataset2$Ishan)
+par(mfrow = c(1,2))
+hist(dataset2$Ishan,breaks = sqrt(length(dataset2$Ishan)))
+hist(dataset$Ishan,breaks = sqrt(length(dataset2$Ishan)))
+
+par(mfrow = c(1,1))
+(plot(dataset$Ishan,
+     type = "l",
+     bty = "l",
+     ylim = c(0,2),
+     ylab = "Ishan",
+     xlab = "Observation")+
+lines(dataset2$Ishan, col = 2)+
+abline(h = c(.1,.9),lty = 2)+
+legend(5,2.20,
+       legend = c("Normal","Transformed"),
+       bty = "n",ncol = 2,lty = 1, col =c(1,2)))
 
 
-dados3=dados2
-dados3$Ishan=0.1+(0.9-0.1)*(dados3$Ishan-min(dados3$Ishan))/(max(dados3$Ishan)-min(dados3$Ishan))
+# Model 1 - Isham ------------------------------------------------------------
 
-#ìndice Ishan
-summary(dados3$Ishan)
-hist(dados3$Isimp)
-modelo_ishan=betareg(Ishan~Tempo*Tratamento,link="logit",data=dados3)
+modelo_ishan=betareg(Ishan~Day*Treatment,link="logit",data=dataset2)
 coef_ishan=summary(modelo_ishan)
 xtable(coef_ishan$coefficients$mean,digits=5)
 
@@ -185,25 +383,26 @@ confint(modelo_isimp)
 r1=residuals(modelo_ishan,type="deviance")
 r2=residuals(modelo_ishan,type="sweighted2")
 r3=residuals(modelo_ishan,type="pearson")
-#Gráfico dos resíduos
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
+#Graph residuals
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Deviance"))
+  +labs(x="Indice",y="Residuos Deviance"))
 
-r=(ggplot(dados3)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
+r=(ggplot(dataset2)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
    +geom_hline(yintercept = c(-2,2),linetype="dashed")
-   +labs(x="Índices",y="Resíduos Padronizado tipo 2"))
+   +labs(x="Indices",y="ResÃ­duos Padronizado tipo 2"))
 r
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Pearson"))
+  +labs(x="?ndices",y="Res?duos Pearson"))
 
-pred_obs=(ggplot(dados3)+geom_point(aes(x=modelo_ishan$y,y=predict(modelo_ishan)))
+pred_obs=(ggplot(dataset2)+geom_point(aes(x=modelo_ishan$y,y=predict(modelo_ishan)))
           +theme_classic()
           +geom_abline(intercept = 0, slope = 1)
           +labs(x="y observados",y="y preditos"))
 pred_obs
-#plot(modelo_isimp)
+plot(modelo_ishan)
+
 res=hnp(r2)
 
 
@@ -221,10 +420,10 @@ hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
 grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
 
 
-#ìndice Isimp
-summary(dados3$Isimp)
-hist(dados3$Isimp)
-modelo_isimp=betareg(Isimp~Tempo*Tratamento,link="logit",data=dados3)
+#?ndice Isimp
+summary(dataset2$Isimp)
+hist(dataset2$Isimp)
+modelo_isimp=betareg(Isimp~Day*Treatment,link="logit",data=dataset2)
 model_isimp=summary(modelo_isimp)
 model_isimp$coefficients$mean
 xtable(model_isimp$coefficients$mean,digits=5)
@@ -233,20 +432,20 @@ confint(modelo_isimp)
 r1=residuals(modelo_isimp,type="deviance")
 r2=residuals(modelo_isimp,type="sweighted2")
 r3=residuals(modelo_isimp,type="pearson")
-#Gráfico dos resíduos
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
+#Gr?fico dos res?duos
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
 +geom_hline(yintercept = c(-2,2),linetype="dashed")
-+labs(x="Índices",y="Resíduos Deviance"))
++labs(x="?ndices",y="Res?duos Deviance"))
 
-r=(ggplot(dados3)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
+r=(ggplot(dataset2)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Padronizado tipo 2"))
+  +labs(x="?ndices",y="Res?duos Padronizado tipo 2"))
 
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Pearson"))
+  +labs(x="?ndices",y="Res?duos Pearson"))
 
-pred_obs=(ggplot(dados3)+geom_point(aes(x=modelo_isimp$y,y=predict(modelo_isimp)))
+pred_obs=(ggplot(dataset2)+geom_point(aes(x=modelo_isimp$y,y=predict(modelo_isimp)))
  +theme_classic()
   +geom_abline(intercept = 0, slope = 1)
   +labs(x="y observados",y="y preditos"))
@@ -268,30 +467,30 @@ hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
 
 grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
 
-#ìndice ID
-summary(dados3$ID)
-hist(dados3$ID)
-modelo_id=betareg(ID~Tempo*Tratamento,link="logit",data=dados3)
+#?ndice ID
+summary(dataset2$ID)
+hist(dataset2$ID)
+modelo_id=betareg(ID~Day*Treatment,link="logit",data=dataset2)
 model_id=summary(modelo_id)
 xtable(model_id$coefficients$mean,digits=5)
 
 r1=residuals(modelo_id,type="deviance")
 r2=residuals(modelo_id,type="sweighted2")
 r3=residuals(modelo_id,type="pearson")
-#Gráfico dos resíduos
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
+#Gr?fico dos res?duos
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Deviance"))
+  +labs(x="?ndices",y="Res?duos Deviance"))
 
-r=(ggplot(dados3)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
+r=(ggplot(dataset2)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Padronizado tipo 2"))
+  +labs(x="?ndices",y="Res?duos Padronizado tipo 2"))
 
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Pearson"))
+  +labs(x="?ndices",y="Res?duos Pearson"))
 
-pred_obs=(ggplot(dados3)+geom_point(aes(x=modelo_id$y,y=predict(modelo_id)))
+pred_obs=(ggplot(dataset2)+geom_point(aes(x=modelo_id$y,y=predict(modelo_id)))
   +theme_classic()
   +geom_abline(intercept = 0, slope = 1)
   +labs(x="y observados",y="y preditos"))
@@ -313,10 +512,10 @@ hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
   theme_classic()
 
 grid.arrange(r,hnp_res_ggplot, pred_obs, nrow=3)
-#ìndice IE
-summary(dados3$IE)
-hist(dados3$IE)
-modelo_ie=betareg(IE~Tempo*Tratamento,link="logit",data=dados3)
+#?ndice IE
+summary(dataset2$IE)
+hist(dataset2$IE)
+modelo_ie=betareg(IE~Day*Treatment,link="logit",data=dataset2)
 modelo_ie
 model_ie=summary(modelo_ie)
 xtable(model_ie$coefficients$mean,digits=5)
@@ -325,20 +524,20 @@ confint(modelo_ie)
 r1=residuals(modelo_ie,type="deviance")
 r2=residuals(modelo_ie,type="sweighted2")
 r3=residuals(modelo_ie,type="pearson")
-#Gráfico dos resíduos
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
+#Gr?fico dos res?duos
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r1))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Deviance"))
+  +labs(x="?ndices",y="Res?duos Deviance"))
 
-r=(ggplot(dados3)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
+r=(ggplot(dataset2)+geom_point(aes(x=1:36,y=r2))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Padronizado tipo 2"))
+  +labs(x="?ndices",y="Res?duos Padronizado tipo 2"))
 
-(ggplot(dados3)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
+(ggplot(dataset2)+geom_point(aes(x=1:36,y=r3))+ylim(-3,3)+theme_classic()
   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Índices",y="Resíduos Pearson"))
+  +labs(x="?ndices",y="Res?duos Pearson"))
 
-pred_obs=(ggplot(dados3)+geom_point(aes(x=modelo_ie$y,y=predict(modelo_ie)))
+pred_obs=(ggplot(dataset2)+geom_point(aes(x=modelo_ie$y,y=predict(modelo_ie)))
   +theme_classic()
   +geom_abline(intercept = 0, slope = 1)
   +labs(x="y observados",y="y preditos"))
@@ -362,8 +561,8 @@ res_hnp_ggplot=ggplot(data = dados_res, aes(x)) +
 grid.arrange(r,res_hnp_ggplot,pred_obs,nrow=3)
 
 
-#Juntando gráficos antes da modelagem
-hist4=ggplot(dados3)+aes(Ishan)+geom_histogram(fill="white",color="black")+theme_classic()
+#Juntando gr?ficos antes da modelagem
+hist4=ggplot(dataset2)+aes(Ishan)+geom_histogram(fill="white",color="black")+theme_classic()
 hist4
 grid.arrange(hist1,hist2,hist3,hist4,nrow=2)
 
