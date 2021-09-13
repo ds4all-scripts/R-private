@@ -1,3 +1,4 @@
+# Version 13/09
 # Libraries, work directory and data set  ---------------------------------
 require(ggplot2)
 require(cowplot)
