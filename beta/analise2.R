@@ -10,7 +10,7 @@ rm(list = ls())
 setwd("D:/Documents/Projects/R-private/beta")
 # Photocatalysis data set  ------------------------------------------------
 
-data=read_excel("Datasets/Dataset2.xlsx")
+data=read_excel("Datasets/Dataset2.xlsx",sheet = "data")
 
 # Exploratory analysis and  data visualization --------------------------
 
@@ -731,7 +731,7 @@ summary(dataset3$Ishan)
 H1 = ggplot(dataset3)+
   aes(Ishan)+
   geom_histogram(fill="darkgray",color="black")+
-  theme_cowplot()
+  theme_cowplot()+g
 H1
 
 # Box plot
@@ -794,7 +794,7 @@ L1
 H2 = ggplot(dataset3)+
   aes(IE)+
   geom_histogram(fill="darkgray",color="black")+
-  theme_cowplot()
+  theme_cowplot()+geom_density()
 H2
 summary(dataset3$IE)
 
