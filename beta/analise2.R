@@ -1,4 +1,3 @@
-# Version 13/09
 # Libraries, work directory and data set  ---------------------------------
 require(ggplot2)
 require(cowplot)
@@ -9,6 +8,778 @@ require(xtable)
 require(readxl)
 rm(list = ls())
 setwd("D:/Documents/Projects/R-private/beta")
+
+# Photocatalysis data set  ------------------------------------------------
+data2=read_excel("Datasets/Dataset2.xlsx",sheet = "data2")
+data2 = data2[order(data2$Treatment, decreasing = T),]
+# Exploratory analysis and  data visualization --------------------------
+
+head(data2)
+summary(data2)
+data2$Treatment=as.factor(data2$Treatment)
+data2$Day=as.factor(data2$Day)
+levels(data2$Day) = c("0","1","3","5")
+#Confirmation
+str(data2)
+
+# Observations:
+#             - An observation of Day "3" and Treatment
+#               "No" Control was imputed -> (Mean);
+#             - On Day "0" the 3 observations regarding
+#               the Treatment were duplicates of the
+#               Control;
+#
+
+data2 = data2[order(data2$Day,decreasing = F),]
+data2
+
+
+# Shapiro-Wilk Normality Test ------------------------------------------------------------
+
+dataset3 = data2 #Bkp
+
+#backup: "dataset4"
+
+dataset4=dataset3
+
+#adjust for beta regression: transformation to scale 0.1
+# to 0.9 to avoid problems at the extremes
+
+dataset4$Ishan=0.1+(0.9-0.1)*(dataset3$Ishan-min(dataset3$Ishan))/(max(dataset3$Ishan)-min(dataset3$Ishan))
+
+
+# Shapiro-Wilk Normality Test ---------------------------------------------
+
+shapiro.test(dataset3$IE)
+shapiro.test(dataset3$Ishan)
+
+
+data_control = dataset3[dataset3$Treatment=="No",]
+shapiro.test(data_control$IE)
+shapiro.test(data_control$Ishan)
+
+data_treatment=dataset3[dataset3$Treatment!="No",]
+shapiro.test(data_treatment$IE)
+shapiro.test(data_treatment$Ishan)
+
+data_control2   = dataset4[dataset4$Treatment=="No",]
+data_treatment2 = dataset4[dataset4$Treatment!="No",]
+
+
+# Ishan data visualization ------------------------------------------------
+
+summary(dataset3$Ishan)
+sd(dataset3$Ishan)/mean(dataset3$Ishan)
+shapiro.test(dataset3$Ishan)
+
+H1 = ggplot(dataset3)+
+  aes(Ishan)+
+  geom_histogram(aes(y = stat(count)/sum(count),
+                     fill = Treatment),
+                 color="black")+
+  ylab("")+
+  theme_cowplot()+
+  scale_fill_grey(start = .4,end = .8 )+
+  theme(legend.position = "n")+
+  ylim(0,.25)
+H1
+
+#histogram transformed data
+
+H3 = ggplot(dataset4)+
+  aes(Ishan)+
+  geom_histogram(aes(y = stat(count)/sum(count),
+                     fill = Treatment),
+                 color="black")+
+  ylab("")+
+  theme_cowplot()+
+  scale_fill_grey(start = .4,end = .8 )+
+  theme(legend.position = "n")+
+  ylim(0,.25)+xlab("Ishan transformed")
+H3
+
+
+
+# Non-parametric modelling  -----------------------------------------------
+
+# factor: Treatment
+
+#Ishan
+
+wilcox.test(data_treatment$Ishan,data_control$Ishan,exact = F)
+wilcox.test(data_treatment2$Ishan,data_control2$Ishan,exact = F)
+
+B1 = (ggplot(dataset3)+
+        aes(Treatment, Ishan)+
+        geom_boxplot(fill= c("darkgray","white"),color="black")+
+        theme_classic()+
+        xlab("Treatment")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B1
+
+#Ishan Transformed
+attach(dataset4)
+B2 = (ggplot(dataset4)+
+        aes(Treatment, Ishan)+
+        geom_boxplot(fill=c("darkgray","white"),
+                     color="black")+
+        theme_classic()+
+        labs(x = "Treatment",y = "Ishan transformed")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B2
+
+#IE
+pairwise.wilcox.test(dataset3$IE,
+                     dataset3$Treatment,
+                     p.adjust.method = "bonferroni",
+                     paired = F,alternate = "t",exact = F)
+
+
+B3 = (ggplot(dataset4)+
+        aes(Treatment, IE)+
+        geom_boxplot(fill=c("darkgray","white"),
+                     color="black")+
+        theme_classic()+
+        labs(x = "Treatment",y = "IE")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B3
+
+# factor: Day
+
+#Ishan
+pairwise.wilcox.test(dataset3$Ishan,
+                     dataset3$Day,
+                     p.adjust.method = "bonferroni",
+                     paired = F,alternate = "t",exact = F)
+
+B4 = (ggplot(dataset3)+
+        aes(Day, Ishan)+
+        geom_boxplot(fill=c("darkgray","white",
+                            "white","white"),color="black")+
+        theme_classic()+
+        xlab("Day")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B4
+
+#Ishan transformed
+pairwise.wilcox.test(dataset4$Ishan,
+                     dataset4$Day,
+                     p.adjust.method = "bonferroni",
+                     paired = F,alternate = "t",exact = F)
+
+B5 = (ggplot(dataset4)+
+        aes(Day, Ishan)+
+        geom_boxplot(fill=c("darkgray","white",
+                            "white","white"),color="black")+
+        theme_classic()+
+        xlab("Day")+
+        labs(y = "Ishan transformed")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B5
+
+
+#IE
+
+pairwise.wilcox.test(dataset3$IE,
+                     dataset3$Day,
+                     p.adjust.method = "bonferroni",
+                     paired = F,alternate = "t",exact = F)
+
+B6 = (ggplot(dataset3)+
+        aes(Day, IE)+
+        geom_boxplot(fill=c("darkgray","white",
+                            "darkgray",
+                            "darkgray"),color="black")+
+        theme_classic()+
+        xlab("Day")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B6
+
+
+#Final result
+
+B7 = plot_grid(B4,B5,B1,B2,B6,B3,
+               labels = c("A",NA,"B",
+                          NA,"C","D"),ncol = 2)
+B7
+
+ggsave("graphics/box_plot_overview.png",
+       plot = B7,width = 6,height = 7,units = "in",
+       dpi = 500,limitsize = F)
+
+ggplot(dataset3)+
+  aes(Ishan)+
+  geom_histogram(fill="darkgray",
+                 color="black",
+                 bins = 30)+
+  theme_cowplot()+
+  facet_grid(~Treatment)
+
+# Lines comparing means in relation
+# to time and treatment
+L1 = (ggplot()+
+        stat_summary(data=data_control,
+                     aes(x=Day,
+                         y=Ishan,
+                         linetype="Control"),
+                     fun = mean, geom="line",
+                     group=1)+
+        stat_summary(data=data_treatment,
+                     aes(x=Day,
+                         y=Ishan,
+                         linetype="Treatment"),
+                     fun = mean,
+                     geom="line",
+                     group=1)+
+        stat_summary(data=data_control,
+                     aes(x=Day,
+                         y=Ishan),
+                     fun = mean, geom="point",
+                     group=1)+
+        stat_summary(data=data_treatment,
+                     aes(x=Day,
+                         y=Ishan),
+                     fun = mean,
+                     geom="point",
+                     group=1)+
+        theme_classic()+
+        scale_linetype_manual("Sample",
+                              values=c("Treatment"=2,
+                                       "Control"=1)))
+L1
+# IE data visualization ------------------------------------------------
+
+H2 = ggplot(dataset3)+
+  aes(IE)+
+  geom_histogram(aes(y = stat(count)/sum(count),
+                     fill = Treatment),
+                 #fill="darkgray",
+                 color="black")+
+
+  ylab("")+
+  theme_cowplot()+
+  scale_fill_grey(start = .4,end = .8 )+
+  ylim(0,.25)
+H2
+summary(dataset3$IE)
+sd(dataset3$IE)/mean(dataset3$IE)
+shapiro.test(dataset3$IE)
+# Box plot
+
+
+wilcox.test(data_treatment$IE,data_control$IE)
+
+B2 = (ggplot(dataset3)+
+        aes(Treatment, IE)+
+        geom_boxplot(fill="white",color="black")+
+        theme_classic()+
+        xlab("Treatment")+
+        stat_summary(fun=mean,
+                     geom="point",
+                     shape= 8,
+                     size=2))
+
+B2
+
+ggplot(dataset3)+
+  aes(IE)+
+  geom_histogram(fill="darkgray",
+                 color="black",
+                 bins = 30)+
+  theme_cowplot()+
+  facet_grid(~Treatment)
+
+
+# Lines comparing means in relation
+# to time and treatment
+L2 = (ggplot()+
+        stat_summary(data=data_control,
+                     aes(x=Day,
+                         y=IE,
+                         linetype="Control"),
+                     fun = mean, geom="line",
+                     group=1)+
+        stat_summary(data=data_treatment,
+                     aes(x=Day,
+                         y=IE,
+                         linetype="Treatment"),
+                     fun = mean,
+                     geom="line",
+                     group=1)+
+        stat_summary(data=data_control,
+                     aes(x=Day,
+                         y=IE),
+                     fun = mean, geom="point",
+                     group=1)+
+        stat_summary(data=data_treatment,
+                     aes(x=Day,
+                         y=IE),
+                     fun = mean,
+                     geom="point",
+                     group=1)+
+        theme_classic()+
+        scale_linetype_manual("Sample",
+                              values=c("Treatment"=2,
+                                       "Control"=1)))
+L2
+
+L3 = (ggplot()+
+        stat_summary(data=data_control2,
+                     aes(x=Day,
+                         y=Ishan,
+                         linetype="Control"),
+                     fun = mean, geom="line",
+                     group=1)+
+        stat_summary(data=data_treatment2,
+                     aes(x=Day,
+                         y=Ishan,
+                         linetype="Treatment"),
+                     fun = mean,
+                     geom="line",
+                     group=1)+
+        stat_summary(data=data_control2,
+                     aes(x=Day,
+                         y=Ishan),
+                     fun = mean, geom="point",
+                     group=1)+
+        stat_summary(data=data_treatment2,
+                     aes(x=Day,
+                         y=Ishan),
+                     fun = mean,
+                     geom="point",
+                     group=1)+
+        theme_classic()+
+        scale_linetype_manual("Sample",
+                              values=c("Treatment"=2,
+                                       "Control"=1)))+
+  ylab("Ishan transformed")
+L3
+
+
+# Overview ----------------------------------------------------------------
+
+
+#Transformation effect
+
+Trf = ggplot(dataset3,aes(x = 1:24,
+                          y = Ishan))+
+  geom_line(size = 1.2,
+            color = gray(.4))+ylim(0,5.5)+
+  geom_line(aes(y = dataset4$Ishan),
+            size = 1.2)+
+  theme_cowplot()+
+  annotate("text",
+           x = 15 ,
+           y = c(5.5,1.75),
+           label = c("Non transformed data",
+                     "Transformed data"), color = c(gray(.40),"black"))+
+  geom_hline(yintercept = 1,linetype = 3,size = 1)
+Trf
+#histogram
+H3 = H3 + xlab("Ishan tansformed")
+H3 = H3 + ylab("Relative frequency")
+H3
+
+#With density
+H1+ylim(0,.7)+geom_density()
+H2+geom_density()+geom_density()+ylim(0,6)
+H3+geom_density()+ylim(0,2.5)
+Trf = Trf+xlab("Observations")
+H = plot_grid(H1,H2,H3, Trf, ncol = 2, labels = "AUTO")
+H
+
+
+ggsave(filename = "graphics/Histogram_overview_H202.png",
+       plot = H,
+       device = "png",dpi = "retina",
+       width = 14, height = 7.5,units = "in")
+
+#box plot
+
+B = plot_grid(B1,B2, labels = "AUTO")
+B
+ggsave(filename = "graphics/Boxplot_overview_h2o2.png",
+       plot = B,
+       device = "png",dpi = "retina",
+       width = 10, height = 8,units = "in")
+
+
+
+
+
+
+#lines
+L1 = L1+ theme(legend.position = "n")+ylab("Ishan")
+L3 = L3+ theme(legend.position = "n")
+
+L = plot_grid(L1,L3, L2, labels = "AUTO",ncol = 3)
+L
+ggsave(filename = "graphics/Lines_overview_h2O2.png",
+       plot = L,scale = 1.1,
+       device = "png",dpi = "retina",
+       width = 12, height = 4,units = "in")
+
+# Beta regression (H2O2) --------------------------------------------------------
+# Model without interaction -----------------------------------------------
+# Model 1 - Isham (H2O2) (without interaction) ------------------------------------------------------------
+
+model_ishan=betareg(Ishan~Day+Treatment,link="logit",
+                    data=dataset4)
+confint(model_ishan)
+
+#Table of results
+tab_ishan=summary(model_ishan)
+xtable(tab_ishan$coefficients$mean,digits=5)
+
+
+# Residuals analysis
+r1=residuals(model_ishan,type="deviance")
+r2=residuals(model_ishan,type="sweighted2")
+r3=residuals(model_ishan,type="pearson")
+
+#graphic of residuals analysis
+r=(ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+
+     theme_classic()
+   +geom_hline(yintercept = c(-2,2),linetype="dashed")
+   +labs(x="Index",y="Deviance residuals"))
+r = r+annotate("text",
+               x = 12.5,
+               y = 2.3,
+               label = "Ishan transformed")
+r
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r2))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Standard residuals (type 2)"))
+
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r3))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Pearson residuals"))
+
+pred_obs=(ggplot(dataset4)+geom_point(aes(x=model_ishan$y,y=predict(model_ishan)))
+          +theme_classic()
+          +ylim(0,1)
+          +geom_abline(intercept = 0, slope = 1)
+          +labs(x="y observed",y="y predicted"))
+pred_obs
+
+# Half-Normal Plots with Simulation Envelopes
+
+#porque r2 ??? Não seria melhor escolher r1 ou r3?
+res=hnp(r1)
+
+dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
+colnames(dados_res)=c("x","lower","upper","median","residuals")
+head(dados_res)
+
+hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
+  geom_point(aes(y = residuals)) +
+  geom_line(aes(y = lower)) +
+  geom_line(aes(y = upper)) +
+  geom_line(aes(y = median), linetype = "dashed")+
+  theme_classic()+labs(x = "Theoretical quantiles",
+                       y = "Residuals")
+
+g1 = grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
+g1
+#Others residuals
+plot(model_ishan)
+
+
+# Model 2 - IE (H2O2) (without interaction) ------------------------------------------------------------
+model_ie=betareg(IE~Day+Treatment,
+                 link="logit",
+                 data=dataset4)
+confint(model_ie)
+
+summary(model_ie)
+#Table of results
+tab_ie=summary(model_ie)
+xtable(tab_ie$coefficients$mean,digits=5)
+
+print(citation("betareg"),
+      bibtex=TRUE)
+# Residuals analysis
+r1=residuals(model_ie,type="deviance")
+r2=residuals(model_ie,type="sweighted2")
+r3=residuals(model_ie,type="pearson")
+
+#graphic of residuals analysis
+r=(ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+
+     theme_classic()
+   +geom_hline(yintercept = c(-2,2),linetype="dashed")
+   +labs(x="Index",y="Deviance residuals"))+
+  annotate(geom = "text",
+           x = 12.5,y = 2.25,
+           label = "IE")
+r
+
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r2))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Standard residuals (type 2)"))
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r3))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Pearson residuals"))
+
+pred_obs=(ggplot(dataset4)+geom_point(aes(x=model_ie$y,y=predict(model_ie)))
+          +theme_classic()
+          +geom_abline(intercept = 0, slope = 1)
+          +labs(x="y observed",y="y predicted")
+          +ylim(0,1))
+pred_obs
+
+# Half-Normal Plots with Simulation Envelopes
+
+#porque r2 ??? Não seria melhor escolher r1 ou r3?
+res=hnp(r1)
+
+dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
+colnames(dados_res)=c("x","lower","upper","median","residuals")
+head(dados_res)
+
+
+hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
+  geom_point(aes(y = residuals)) +
+  geom_line(aes(y = lower)) +
+  geom_line(aes(y = upper)) +
+  geom_line(aes(y = median), linetype = "dashed")+
+  theme_classic()+labs(x = "Theoretical quantiles",
+                       y = "Residuals")
+hnp_res_ggplot
+g3 = grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
+g3
+g = plot_grid(g1, g3, labels = "AUTO")
+g
+
+
+# Other link functions ----------------------------------------------------
+
+
+link_func = c("logit","cauchit","probit",
+              "cloglog", "log", "loglog")
+List_plot = list()
+for (i in link_func) {
+cat("Link ----->", i, "\n")
+model_ie=betareg(IE~Day+Treatment,
+                 link= i,
+                 data=dataset4)
+print(summary(model_ie))
+r1=residuals(model_ie,type="deviance")
+res=hnp(r1)
+data_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
+colnames(data_res)=c("x","lower","upper","median","residuals")
+
+print(head(data_res))
+hnp = ggplot(data = data_res, aes(x)) +
+  geom_point(aes(y = residuals)) +
+  geom_line(aes(y = lower)) +
+  geom_line(aes(y = upper)) +
+  geom_line(aes(y = median), linetype = "dashed") +
+  theme_classic() + labs(x = "Theoretical quantiles",
+                         y = "Residuals")+
+  annotate("text", x = .5, y = 3,label = i)
+print(hnp)
+List_plot[[i]] = list(i = hnp)
+
+cat("------------------------------------------ end","\n")
+}
+
+hnp1 = plot_grid(List_plot$logit$i,
+                 List_plot$cauchit$i,
+                 List_plot$probit$i,
+                 List_plot$cloglog$i,
+                 List_plot$loglog$i,
+                 List_plot$log$i,
+                 ncol = 3,
+                 labels = "AUTO")
+
+hnp1
+ggsave(filename = "graphics/hnp_otherlinks_overview_h2O2.png",
+       plot = hnp1,scale = 1.1,
+       device = "png",dpi = 500,
+       width = 6, height = 4,units = "in")
+
+#The best link: Cauchit
+
+model_ie_cauchit=betareg(IE~Day+Treatment,
+                 link="cauchit",
+                 data=dataset4)
+
+summary(model_ie_cauchit)
+
+#Table of results
+tab_ie_cauchit=summary(model_ie_cauchit)
+xtable(tab_ie_cauchit$coefficients$mean,digits=5)
+
+
+
+# Models with interaction ----------------------------------------------------
+
+
+# Model 3 -  Ishan (H2O2 ) with interaction -------------------------------
+
+model_ishan=betareg(Ishan~Day*Treatment,
+                 link="logit",
+                 data=dataset4)
+
+summary(model_ishan)
+#Table of results
+tab_ishan=summary(model_ishan)
+xtable(tab_ishan$coefficients$mean,digits=5)
+
+
+# Residuals analysis
+r1=residuals(model_ishan,type="deviance")
+r2=residuals(model_ishan,type="sweighted2")
+r3=residuals(model_ishan,type="pearson")
+
+#graphic of residuals analysis
+
+
+r = (ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+
+     theme_classic()
+   +geom_hline(yintercept = c(-3,3),linetype="dashed")
+   +labs(x="Index",y="Deviance residuals"))+
+  annotate(geom = "text",
+           x = 12.5,y = 2.25,
+           label = "Ishan")
+r
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Standard residuals (type 2)"))
+
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r2))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Pearson residuals"))
+
+# Half-Normal Plots with Simulation Envelopes
+
+res=hnp(r1)
+
+dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
+colnames(dados_res)=c("x","lower","upper","median","residuals")
+head(dados_res)
+
+
+hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
+  geom_point(aes(y = residuals)) +
+  geom_line(aes(y = lower)) +
+  geom_line(aes(y = upper)) +
+  geom_line(aes(y = median), linetype = "dashed")+
+  theme_classic()+labs(x = "Theoretical quantiles",
+                       y = "Residuals")
+
+
+pred_obs=(ggplot(dataset4)+geom_point(aes(x=model_ie$y,y=predict(model_ie)))
+          +theme_classic()
+          +geom_abline(intercept = 0, slope = 1)
+          +labs(x="y observed",y="y predicted")
+          +ylim(0,1))
+pred_obs
+
+G1 = grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
+G1
+
+# Model 4 -  Ishan (H2O2 ) with interaction -------------------------------
+
+model_ie=betareg(IE~Day*Treatment,
+                    link="logit",
+                    data=dataset4)
+
+summary(model_ie)
+#Table of results
+tab_ie=summary(model_ie)
+xtable(tab_ie$coefficients$mean,digits=5)
+
+
+# Residuals analysis
+r1=residuals(model_ie,type="deviance")
+r2=residuals(model_ie,type="sweighted2")
+r3=residuals(model_ie,type="pearson")
+
+#graphic of residuals analysis
+
+
+r = (ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+
+       theme_classic()
+     +geom_hline(yintercept = c(-3,3),linetype="dashed")
+     +labs(x="Index",y="Deviance residuals"))+
+  annotate(geom = "text",
+           x = 12.5,y = 2.25,
+           label = "IE")
+
+r
+
+
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Standard residuals (type 2)"))
+
+(ggplot(dataset4)+geom_point(aes(x=1:24,y=r2))+ylim(-3,3)+theme_classic()
+  +geom_hline(yintercept = c(-2,2),linetype="dashed")
+  +labs(x="Index",y="Pearson residuals"))
+
+
+# Half-Normal Plots with Simulation Envelopes
+
+res=hnp(r1)
+
+dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
+colnames(dados_res)=c("x","lower","upper","median","residuals")
+head(dados_res)
+
+
+hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
+  geom_point(aes(y = residuals)) +
+  geom_line(aes(y = lower)) +
+  geom_line(aes(y = upper)) +
+  geom_line(aes(y = median), linetype = "dashed")+
+  theme_classic()+labs(x = "Theoretical quantiles",
+                       y = "Residuals")
+
+
+pred_obs=(ggplot(dataset4)+geom_point(aes(x=model_ie$y,y=predict(model_ie)))
+          +theme_classic()
+          +geom_abline(intercept = 0, slope = 1)
+          +labs(x="y observed",y="y predicted")
+          +ylim(0,1))
+pred_obs
+
+G2 = grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
+G2
+
+# All residuals
+G = grid.arrange(G1,G2, nrow=1)
+G
+
+ggsave(filename = "graphics/Residuals_interaction_h2O2.png",
+       plot = G,scale = 1.1,
+       device = "png",dpi = 500,
+       width = 4, height = 7,units = "in")
+
 # Photocatalysis data set  ------------------------------------------------
 
 data=read_excel("Datasets/Dataset2.xlsx",sheet = "data")
@@ -37,8 +808,26 @@ colnames(dataset)=c("Day", "Treatment", "Sample", "Others", "Cyanobacteria"
 # Day 0 adjustment
 dataset$Treatment[1:3]=1
 
+shapiro.test(dataset$Isimp)
+shapiro.test(dataset$Ishan)
+shapiro.test(dataset$ID)
+shapiro.test(dataset$IE)
+
+
+
 data_control=dataset[dataset$Treatment==0,]
+shapiro.test(data_control$Isimp)
+shapiro.test(data_control$Ishan)
+shapiro.test(data_control$ID)
+shapiro.test(data_control$IE)
+
 data_treatment=dataset[dataset$Treatment!=0,]
+shapiro.test(data_treatment$Isimp)
+shapiro.test(data_treatment$Ishan)
+shapiro.test(data_treatment$ID)
+shapiro.test(data_treatment$IE)
+
+
 dataset$Treatment2 = as.factor(ifelse(dataset$Treatment==1,"Yes","No"))
 
 # Cyanobacteria data visualization ----------------------------------------
@@ -467,10 +1256,19 @@ dev.off()
 model_ishan=betareg(Ishan~Day*Treatment,link="logit",data=dataset2)
 confint(model_ishan)
 
-#Table of results
+#model without iterations
+model_ishan2 = betareg(Ishan~Day+Treatment,link="logit",data=dataset2)
+confint(model_ishan2)
+
+
+#Table of results with iterations
 tab_ishan=summary(model_ishan)
 xtable(tab_ishan$coefficients$mean,digits=5)
 
+
+#Table of results without iterations
+tab_ishan=summary(model_ishan2)
+xtable(tab_ishan$coefficients$mean,digits=5)
 
 # Residuals analysis
 r1=residuals(model_ishan,type="deviance")
@@ -577,7 +1375,7 @@ grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
 plot(model_ishan)
 
 
-# Model 3 - ID ------------------------------------------------------------
+# Model 3 - Ie ------------------------------------------------------------
 
 model_id=betareg(ID~Day*Treatment,link="logit",data=dataset2)
 confint(model_id)
@@ -693,351 +1491,4 @@ grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
 plot(model_ie)
 
 
-
-# Photocatalysis data set  ------------------------------------------------
-setwd("D:/Documents/Projects/R-private/beta")
-data2=read_excel("Datasets/Dataset2.xlsx",sheet = "data2")
-
-data2 = data2[order(data2$Treatment, decreasing = T),]
-# Exploratory analysis and  data visualization --------------------------
-
-head(data2)
-summary(data2)
-data2$Treatment=as.factor(data2$Treatment)
-data2$Day=as.factor(data2$Day)
-levels(data2$Day) = c("0","1","3","5")
-#Confirmation
-str(data2)
-
-# Observations:
-#             - An observation of Day "3" and Treatment
-#               "No" Control was imputed -> (Mean);
-#             - On Day "0" the 3 observations regarding
-#               the Treatment were duplicates of the
-#               Control;
-#
-
-data2 = data2[order(data2$Day,decreasing = F),]
-data2
-
-# Ishan data visualization ------------------------------------------------
-
-
-dataset3 = data2 #Bkp
-data_control=dataset3[dataset3$Treatment=="No",]
-data_treatment=dataset3[dataset3$Treatment!="No",]
-
-
-summary(dataset3$Ishan)
-H1 = ggplot(dataset3)+
-  aes(Ishan)+
-  geom_histogram(fill="darkgray",color="black")+
-  theme_cowplot()+g
-H1
-
-# Box plot
-
-wilcox.test(data_treatment$Ishan,data_control$Ishan)
-
-B1 = (ggplot(dataset3)+
-    aes(Treatment, Ishan)+
-    geom_boxplot(fill="white",color="black")+
-    theme_classic()+
-    xlab("Treatment")+
-    stat_summary(fun=mean,
-                 geom="point",
-                 shape= 8,
-                 size=2))
-
-B1
-ggplot(dataset3)+
-  aes(Ishan)+
-  geom_histogram(fill="darkgray",
-                 color="black",
-                 bins = 30)+
-  theme_cowplot()+
-  facet_grid(~Treatment)
-
-# Lines comparing means in relation
-# to time and treatment
-L1 = (ggplot()+
-    stat_summary(data=data_control,
-                 aes(x=Day,
-                     y=Ishan,
-                     linetype="Control"),
-                 fun = mean, geom="line",
-                 group=1)+
-    stat_summary(data=data_treatment,
-                 aes(x=Day,
-                     y=Ishan,
-                     linetype="Treatment"),
-                 fun = mean,
-                 geom="line",
-                 group=1)+
-    stat_summary(data=data_control,
-                 aes(x=Day,
-                     y=Ishan),
-                 fun = mean, geom="point",
-                 group=1)+
-    stat_summary(data=data_treatment,
-                 aes(x=Day,
-                     y=Ishan),
-                 fun = mean,
-                 geom="point",
-                 group=1)+
-    theme_classic()+
-    scale_linetype_manual("Sample",
-                          values=c("Treatment"=2,
-                                   "Control"=1)))
-L1
-# IE data visualization ------------------------------------------------
-
-H2 = ggplot(dataset3)+
-  aes(IE)+
-  geom_histogram(fill="darkgray",color="black")+
-  theme_cowplot()+geom_density()
-H2
-summary(dataset3$IE)
-
-# Box plot
-
-wilcox.test(data_treatment$IE,data_control$IE)
-
-B2 = (ggplot(dataset3)+
-    aes(Treatment, IE)+
-    geom_boxplot(fill="white",color="black")+
-    theme_classic()+
-    xlab("Treatment")+
-    stat_summary(fun=mean,
-                 geom="point",
-                 shape= 8,
-                 size=2))
-
-B2
-
-ggplot(dataset3)+
-  aes(IE)+
-  geom_histogram(fill="darkgray",
-                 color="black",
-                 bins = 30)+
-  theme_cowplot()+
-  facet_grid(~Treatment)
-
-
-# Lines comparing means in relation
-# to time and treatment
-L2 = (ggplot()+
-    stat_summary(data=data_control,
-                 aes(x=Day,
-                     y=IE,
-                     linetype="Control"),
-                 fun = mean, geom="line",
-                 group=1)+
-    stat_summary(data=data_treatment,
-                 aes(x=Day,
-                     y=IE,
-                     linetype="Treatment"),
-                 fun = mean,
-                 geom="line",
-                 group=1)+
-    stat_summary(data=data_control,
-                 aes(x=Day,
-                     y=IE),
-                 fun = mean, geom="point",
-                 group=1)+
-    stat_summary(data=data_treatment,
-                 aes(x=Day,
-                     y=IE),
-                 fun = mean,
-                 geom="point",
-                 group=1)+
-    theme_classic()+
-    scale_linetype_manual("Sample",
-                          values=c("Treatment"=2,
-                                   "Control"=1)))
-L2
-
-
-# Overview ----------------------------------------------------------------
-
-#histogram
-H = plot_grid(H1,H2, labels = "AUTO")
-H
-ggsave(filename = "graphics/Histogram_overview_H202.png",
-       plot = H,
-       device = "png",
-       width = 10, height = 8,units = "in")
-
-#box plot
-
-B = plot_grid(B1,B2, labels = "AUTO")
-B
-ggsave(filename = "graphics/Boxplot_overview_h2o2.png",
-       plot = B,
-       device = "png",
-       width = 10, height = 8,units = "in")
-
-
-#lines
-L1 = L1+theme(legend.position = "n")
-L2
-
-L = plot_grid(L1,L2, labels = "AUTO")
-L
-ggsave(filename = "graphics/Lines_overview_h2O2.png",
-       plot = L,
-       device = "png",
-       width = 13, height = 10,units = "in")
-
-# Beta regression (H2O2) --------------------------------------------------------
-
-#backup: "dataset4"
-
-dataset4=dataset3
-
-#adjust for beta regression: transformation to scale 0.1
-# to 0.9 to avoid problems at the extremes
-
-dataset4$Ishan=0.1+(0.9-0.1)*(dataset3$Ishan-min(dataset3$Ishan))/(max(dataset3$Ishan)-min(dataset3$Ishan))
-
-# effect of transformation on Ishan
-summary(dataset4$Ishan)
-png("graphics/hist_Ishan_trans_vs_nonTrans_h202.png",
-    width = 12,height = 6, res = 600,units = "in")
-par(mfrow = c(1,2))
-hist(dataset4$Ishan,
-     breaks = sqrt(length(dataset2$Ishan)),
-     main = "",xlab = "Transformed")
-hist(dataset3$Ishan,
-     breaks = sqrt(length(dataset2$Ishan)),
-     main = "", xlab = "Non transformed")
-dev.off()
-png("graphics/lines_trans_vs_nonTrans_h202.png",
-    width = 7,height = 4, res = 600,units = "in")
-par(mfrow = c(1,1))
-plot(dataset4$Ishan,
-     type = "l",
-     bty = "l",
-     ylim = c(0,6),
-     ylab = "Ishan", xlab = "Observation")
-lines(dataset3$Ishan, col = 2)
-abline(h = c(.1,.9),lty = 2)
-legend(5,6.20,
-       legend = c("Non transformed","Transformed"),
-       bty = "n",ncol = 2,lty = 1, col =c(1,2))
-dev.off()
-
-# Model 5 - Isham (H2O2) ------------------------------------------------------------
-
-model_ishan=betareg(Ishan~Day*Treatment,link="logit",
-                    data=dataset4)
-confint(model_ishan)
-
-#Table of results
-tab_ishan=summary(model_ishan)
-xtable(tab_ishan$coefficients$mean,digits=5)
-
-
-# Residuals analysis
-r1=residuals(model_ishan,type="deviance")
-r2=residuals(model_ishan,type="sweighted2")
-r3=residuals(model_ishan,type="pearson")
-
-#graphic of residuals analysis
-(ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+
-    theme_classic()
-  +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Index",y="Deviance residuals"))
-
-r=(ggplot(dataset4)+geom_point(aes(x=1:24,y=r2))+ylim(-3,3)+theme_classic()
-   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-   +labs(x="Index",y="Standard residuals (type 2)"))
-r
-(ggplot(dataset4)+geom_point(aes(x=1:24,y=r3))+ylim(-3,3)+theme_classic()
-  +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Index",y="Pearson residuals"))
-
-pred_obs=(ggplot(dataset4)+geom_point(aes(x=model_ishan$y,y=predict(model_ishan)))
-          +theme_classic()
-          +geom_abline(intercept = 0, slope = 1)
-          +labs(x="y observed",y="y predicted"))
-pred_obs
-
-# Half-Normal Plots with Simulation Envelopes
-
-#porque r2 ??? Não seria melhor escolher r1 ou r3?
-res=hnp(r3)
-
-dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
-colnames(dados_res)=c("x","lower","upper","median","residuals")
-head(dados_res)
-
-hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
-  geom_point(aes(y = residuals)) +
-  geom_line(aes(y = lower)) +
-  geom_line(aes(y = upper)) +
-  geom_line(aes(y = median), linetype = "dashed")+
-  theme_classic()
-
-grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
-
-#Others residuals
-plot(model_ishan)
-
-# Model 6 - IE (H2O2) ------------------------------------------------------------
-
-model_ie=betareg(IE~Day*Treatment,link="logit",
-                    data=dataset4)
-confint(model_ie)
-
-#Table of results
-tab_ie=summary(model_ie)
-xtable(tab_ie$coefficients$mean,digits=5)
-
-
-# Residuals analysis
-r1=residuals(model_ie,type="deviance")
-r2=residuals(model_ie,type="sweighted2")
-r3=residuals(model_ie,type="pearson")
-
-#graphic of residuals analysis
-(ggplot(dataset4)+geom_point(aes(x=1:24,y=r1))+ylim(-3,3)+
-    theme_classic()
-  +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Index",y="Deviance residuals"))
-
-r=(ggplot(dataset4)+geom_point(aes(x=1:24,y=r2))+ylim(-3,3)+theme_classic()
-   +geom_hline(yintercept = c(-2,2),linetype="dashed")
-   +labs(x="Index",y="Standard residuals (type 2)"))
-r
-(ggplot(dataset4)+geom_point(aes(x=1:24,y=r3))+ylim(-3,3)+theme_classic()
-  +geom_hline(yintercept = c(-2,2),linetype="dashed")
-  +labs(x="Index",y="Pearson residuals"))
-
-pred_obs=(ggplot(dataset4)+geom_point(aes(x=model_ie$y,y=predict(model_ie)))
-          +theme_classic()
-          +geom_abline(intercept = 0, slope = 1)
-          +labs(x="y observed",y="y predicted"))
-pred_obs
-
-# Half-Normal Plots with Simulation Envelopes
-
-#porque r2 ??? Não seria melhor escolher r1 ou r3?
-res=hnp(r3)
-
-dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
-colnames(dados_res)=c("x","lower","upper","median","residuals")
-head(dados_res)
-
-hnp_res_ggplot=ggplot(data = dados_res, aes(x)) +
-  geom_point(aes(y = residuals)) +
-  geom_line(aes(y = lower)) +
-  geom_line(aes(y = upper)) +
-  geom_line(aes(y = median), linetype = "dashed")+
-  theme_classic()
-
-grid.arrange(r, hnp_res_ggplot, pred_obs, nrow=3)
-
-#Others residuals
-plot(model_ie)
 
