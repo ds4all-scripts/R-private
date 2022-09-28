@@ -81,7 +81,7 @@ H1 = ggplot(dataset3)+
   theme_cowplot()+
   scale_fill_grey(start = .4,end = .8 )+
   theme(legend.position = "n")+
-  ylim(0,.25)
+  ylim(0,.25)+ ylab("Relative frequency")
 H1
 
 #histogram transformed data
@@ -229,7 +229,7 @@ B7
 
 ggsave("graphics/box_plot_overview.png",
        plot = B7,width = 6,height = 7,units = "in",
-       dpi = 500,limitsize = F)
+       dpi = 10000,limitsize = F)
 
 ggplot(dataset3)+
   aes(Ishan)+
@@ -283,7 +283,7 @@ H2 = ggplot(dataset3)+
   ylab("")+
   theme_cowplot()+
   scale_fill_grey(start = .4,end = .8 )+
-  ylim(0,.25)
+  ylim(0,.25)+ ylab("Relative frequency")
 H2
 summary(dataset3$IE)
 sd(dataset3$IE)/mean(dataset3$IE)
@@ -415,8 +415,8 @@ H
 
 ggsave(filename = "graphics/Histogram_overview_H202.png",
        plot = H,
-       device = "png",dpi = "retina",
-       width = 14, height = 7.5,units = "in")
+       device = "png",dpi = 1000,
+       width = 13, height = 6,units = "in",limitsize = F)
 
 #box plot
 
@@ -424,8 +424,8 @@ B = plot_grid(B1,B2, labels = "AUTO")
 B
 ggsave(filename = "graphics/Boxplot_overview_h2o2.png",
        plot = B,
-       device = "png",dpi = "retina",
-       width = 10, height = 8,units = "in")
+       device = "png",dpi = 1000,limitsize = F,
+       width = 6, height = 4,units = "in")
 
 
 
@@ -440,7 +440,7 @@ L = plot_grid(L1,L3, L2, labels = "AUTO",ncol = 3)
 L
 ggsave(filename = "graphics/Lines_overview_h2O2.png",
        plot = L,scale = 1.1,
-       device = "png",dpi = "retina",
+       device = "png",dpi = 1000,limitsize = F,
        width = 12, height = 4,units = "in")
 
 # Beta regression (H2O2) --------------------------------------------------------
@@ -453,7 +453,7 @@ confint(model_ishan)
 
 #Table of results
 tab_ishan=summary(model_ishan)
-xtable(tab_ishan$coefficients$mean,digits=5)
+xtable(tab_ishan$coefficients$mean,digits=50)
 
 
 # Residuals analysis
@@ -618,8 +618,8 @@ hnp1 = plot_grid(List_plot$logit$i,
 
 hnp1
 ggsave(filename = "graphics/hnp_otherlinks_overview_h2O2.png",
-       plot = hnp1,scale = 1.1,
-       device = "png",dpi = 500,
+       plot = hnp1,limitsize = F,
+       device = "png",dpi = 1000,
        width = 6, height = 4,units = "in")
 
 #The best link: Cauchit
@@ -777,7 +777,7 @@ G
 
 ggsave(filename = "graphics/Residuals_interaction_h2O2.png",
        plot = G,scale = 1.1,
-       device = "png",dpi = 500,
+       device = "png",dpi = 1000,limitsize = F,
        width = 4, height = 7,units = "in")
 
 # Photocatalysis data set  ------------------------------------------------
