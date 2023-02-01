@@ -3,6 +3,7 @@ require(ggplot2)
 require(cowplot)
 require(gridExtra)
 require(betareg)
+citation("betareg")
 require(hnp)
 require(xtable)
 require(readxl)
@@ -553,7 +554,7 @@ pred_obs
 
 # Half-Normal Plots with Simulation Envelopes
 
-#porque r2 ??? Não seria melhor escolher r1 ou r3?
+
 res=hnp(r1)
 
 dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
@@ -1297,7 +1298,7 @@ pred_obs
 
 # Half-Normal Plots with Simulation Envelopes
 
-#porque r2 ??? Não seria melhor escolher r1 ou r3?
+
 res=hnp(r1)
 
 dados_res= data.frame(res$x, res$lower, res$upper, res$median, res$residuals)
